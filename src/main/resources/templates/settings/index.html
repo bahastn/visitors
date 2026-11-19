@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.settings}">Settings</title></head>
+<body>
+<section>
+    <div class="page-head"><div><h1 th:text="#{nav.settings}"></h1><div class="sub" th:text="#{set.sub}"></div></div></div>
+    <form th:action="@{/settings}" method="post" class="panel" style="max-width:900px">
+        <div class="form-section">
+            <h3><i class="bi bi-bank"></i> <span th:text="#{set.organisation}"></span></h3>
+            <div class="row g-3">
+                <div class="col-md-4"><label class="form-label" for="o1" th:text="#{set.orgNameCkb}"></label><input id="o1" class="form-control" name="s_org_name_ckb" th:value="${values['org.name.ckb']}" dir="rtl"></div>
+                <div class="col-md-4"><label class="form-label" for="o2" th:text="#{set.orgNameAr}"></label><input id="o2" class="form-control" name="s_org_name_ar" th:value="${values['org.name.ar']}" dir="rtl"></div>
+                <div class="col-md-4"><label class="form-label" for="o3" th:text="#{set.orgNameEn}"></label><input id="o3" class="form-control" name="s_org_name_en" th:value="${values['org.name.en']}" dir="ltr"></div>
+            </div>
+            <p class="form-text mt-2 mb-3" th:text="#{set.officeRulesHint}"></p>
+        </div>
+        <div class="form-section">
+            <h3><i class="bi bi-bell"></i> <span th:text="#{set.notifications}"></span></h3>
+            <div class="row g-3 mb-3">
+                <div class="col-md-4"><label class="form-label" for="rh" th:text="#{set.reminderHours}"></label><input id="rh" type="number" min="1" max="72" class="form-control" name="s_notify_reminderHours" th:value="${values['notify.reminderHours']}"></div>
+                <div class="col-md-8 d-flex flex-column justify-content-end gap-1">
+                    <div class="form-check form-switch"><input type="checkbox" class="form-check-input" name="s_notify_morningSummary" id="ms" th:checked="${values['notify.morningSummary'] == 'true'}"><label class="form-check-label" for="ms" th:text="#{set.morningSummary}"></label></div>
+                    <div class="form-check form-switch"><input type="checkbox" class="form-check-input" name="s_notify_feedbackSurvey" id="fs" th:checked="${values['notify.feedbackSurvey'] == 'true'}"><label class="form-check-label" for="fs" th:text="#{set.feedbackSurvey}"></label></div>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <span class="tag" th:classappend="${smsConfigured} ? info : ''"><span th:text="#{enum.NotificationChannel.SMS}"></span>: <span th:text="${smsConfigured} ? #{notif.connected} : #{notif.logOnly}"></span></span>
+                <span class="tag" th:classappend="${whatsappConfigured} ? info : ''"><span th:text="#{enum.NotificationChannel.WHATSAPP}"></span>: <span th:text="${whatsappConfigured} ? #{notif.connected} : #{notif.logOnly}"></span></span>
+                <span class="tag" th:classappend="${emailConfigured} ? info : ''"><span th:text="#{enum.NotificationChannel.EMAIL}"></span>: <span th:text="${emailConfigured} ? #{notif.connected} : #{notif.logOnly}"></span></span>
+                <span class="small-muted" th:text="#{set.gatewaysHint}"></span>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="bi bi-shield-lock"></i> <span th:text="#{set.securityAndPublic}"></span></h3>
+            <div class="d-flex flex-column gap-2 mb-3">
+                <div class="form-check form-switch"><input type="checkbox" class="form-check-input" name="s_security_require2faSenior" id="tf" th:checked="${values['security.require2faSenior'] == 'true'}"><label class="form-check-label" for="tf" th:text="#{set.require2fa}"></label></div>
+                <div class="form-check form-switch"><input type="checkbox" class="form-check-input" name="s_public_formEnabled" id="pf" th:checked="${values['public.formEnabled'] == 'true'}"><label class="form-check-label" for="pf" th:text="#{set.publicForm}"></label></div>
+                <div class="form-check form-switch"><input type="checkbox" class="form-check-input" name="s_dates_showKurdish" id="sk" th:checked="${values['dates.showKurdish'] == 'true'}"><label class="form-check-label" for="sk" th:text="#{set.showKurdish}"></label></div>
+                <div class="form-check form-switch"><input type="checkbox" class="form-check-input" name="s_dates_showHijri" id="sh" th:checked="${values['dates.showHijri'] == 'true'}"><label class="form-check-label" for="sh" th:text="#{set.showHijri}"></label></div>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="bi bi-palette"></i> <span th:text="#{set.appearance}"></span></h3>
+            <div class="row g-3 mb-3">
+                <div class="col-md-4"><label class="form-label" for="uit" th:text="#{set.theme}"></label>
+                    <select id="uit" class="form-select" name="s_ui_theme">
+                        <option value="default" th:selected="${values['ui.theme'] != 'parliament'}" th:text="#{set.themeDefault}"></option>
+                        <option value="parliament" th:selected="${values['ui.theme'] == 'parliament'}" th:text="#{set.themeParliament}"></option>
+                    </select></div>
+            </div>
+        </div>
+        <div class="form-actions"><button class="btn btn-primary" th:text="#{common.save}"></button></div>
+    </form>
+</section>
+</body>
+</html>

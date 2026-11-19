@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.offices}">Offices</title></head>
+<body>
+<section>
+    <h1 class="page-title mb-1" th:text="#{nav.offices}"></h1>
+    <p class="text-muted small" th:text="#{office.help}"></p>
+    <div class="card mb-3">
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead><tr><th th:text="#{office.name}"></th><th th:text="#{office.code}"></th><th th:text="#{office.contact}"></th><th th:text="#{office.endpoint}"></th><th th:text="#{office.apiKey}"></th><th th:text="#{req.status}"></th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="o : ${offices}" th:with="fid=${'of' + o.id}">
+                    <td><input name="name" class="form-control form-control-sm" th:value="${o.name}" required th:attr="form=${fid}"></td>
+                    <td><input name="code" class="form-control form-control-sm" dir="ltr" th:value="${o.code}" required style="width:110px" th:attr="form=${fid}"></td>
+                    <td><input name="contactPerson" class="form-control form-control-sm mb-1" th:value="${o.contactPerson}" th:placeholder="#{office.person}" th:attr="form=${fid}">
+                        <input name="contactEmail" class="form-control form-control-sm mb-1" dir="ltr" th:value="${o.contactEmail}" placeholder="email" th:attr="form=${fid}">
+                        <input name="contactPhone" class="form-control form-control-sm" dir="ltr" th:value="${o.contactPhone}" th:placeholder="#{visitor.phone}" th:attr="form=${fid}"></td>
+                    <td><input name="endpointUrl" class="form-control form-control-sm" dir="ltr" th:value="${o.endpointUrl}" placeholder="https://..." th:attr="form=${fid}"></td>
+                    <td class="small ltr"><span th:text="${o.apiKey != null} ? ${#strings.abbreviate(o.apiKey, 12)} : '—'"></span></td>
+                    <td><input type="checkbox" class="form-check-input" name="active" value="true" th:checked="${o.active}" th:attr="form=${fid}"></td>
+                    <td class="text-nowrap"><form th:id="${fid}" th:action="@{/offices}" method="post">
+                        <input type="hidden" name="id" th:value="${o.id}"><button class="btn btn-sm btn-success"><i class="bi bi-save"></i></button></form></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <form th:action="@{/offices}" method="post" class="card p-3">
+                <h2 class="h6" th:text="#{office.add}"></h2>
+                <div class="row g-2">
+                    <div class="col-md-8"><input name="name" class="form-control" required th:placeholder="#{office.name}"></div>
+                    <div class="col-md-4"><input name="code" class="form-control" dir="ltr" required th:placeholder="#{office.code}"></div>
+                    <div class="col-md-6"><input name="contactPerson" class="form-control" th:placeholder="#{office.person}"></div>
+                    <div class="col-md-6"><input name="contactEmail" class="form-control" dir="ltr" placeholder="email"></div>
+                    <div class="col-md-12"><input name="endpointUrl" class="form-control" dir="ltr" placeholder="https://other-office.example/api/v1/referrals"></div>
+                </div>
+                <button class="btn btn-success mt-2" th:text="#{common.save}"></button>
+            </form>
+        </div>
+        <div class="col-lg-6">
+            <div class="card p-3">
+                <h2 class="h6" th:text="#{office.keys}"></h2>
+                <ul class="list-unstyled small mb-0">
+                    <li th:each="o : ${offices}" class="d-flex justify-content-between align-items-center mb-1">
+                        <span th:text="${o.name}"></span>
+                        <form th:action="@{/offices/{id}/api-key(id=${o.id})}" method="post" th:data-confirm="#{common.areYouSure}">
+                            <button class="btn btn-sm btn-outline-secondary" th:text="#{office.newKey}"></button></form></li>
+                </ul>
+                <hr>
+                <div class="small"><b>API</b>: <code dir="ltr">POST /api/v1/referrals</code> · <code dir="ltr">GET /api/v1/referrals/{ref}</code> — <span th:text="#{office.apiHint}"></span></div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

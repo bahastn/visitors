@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{public/layout :: page(~{::title}, ~{::section})}">
+<head><title th:text="#{req.feedback}">Feedback</title></head>
+<body>
+<section>
+    <div class="panel mx-auto" style="max-width:560px"><div class="panel-body p-4">
+        <h1 class="h5 text-center" th:text="#{feedback.title}"></h1>
+        <p class="text-center small-muted"><span class="ltr" th:text="${r.referenceNumber}"></span> — <span th:text="${r.subject}"></span></p>
+        <div th:if="${thanks or already}" class="alert alert-success text-center" th:text="#{feedback.thanks}"></div>
+        <form th:unless="${already}" th:action="@{/public/feedback/{t}(t=${r.publicToken})}" method="post">
+            <div class="mb-3 text-center"><label class="form-label d-block" th:text="#{feedback.overall}"></label>
+                <div class="stars" dir="ltr">
+                    <input type="radio" name="rating" id="r5" value="5" required><label for="r5">★</label>
+                    <input type="radio" name="rating" id="r4" value="4"><label for="r4">★</label>
+                    <input type="radio" name="rating" id="r3" value="3"><label for="r3">★</label>
+                    <input type="radio" name="rating" id="r2" value="2"><label for="r2">★</label>
+                    <input type="radio" name="rating" id="r1" value="1"><label for="r1">★</label>
+                </div></div>
+            <div class="mb-3 text-center"><label class="form-label d-block" th:text="#{feedback.reception}"></label>
+                <div class="stars" dir="ltr">
+                    <input type="radio" name="receptionRating" id="q5" value="5"><label for="q5">★</label>
+                    <input type="radio" name="receptionRating" id="q4" value="4"><label for="q4">★</label>
+                    <input type="radio" name="receptionRating" id="q3" value="3"><label for="q3">★</label>
+                    <input type="radio" name="receptionRating" id="q2" value="2"><label for="q2">★</label>
+                    <input type="radio" name="receptionRating" id="q1" value="1"><label for="q1">★</label>
+                </div></div>
+            <div class="mb-3"><label class="form-label" th:text="#{feedback.addressed}"></label>
+                <div class="d-flex gap-3">
+                    <div class="form-check"><input class="form-check-input" type="radio" name="issueAddressed" value="true" id="ia1"><label class="form-check-label" for="ia1" th:text="#{common.yes}"></label></div>
+                    <div class="form-check"><input class="form-check-input" type="radio" name="issueAddressed" value="false" id="ia2"><label class="form-check-label" for="ia2" th:text="#{common.no}"></label></div>
+                </div></div>
+            <div class="mb-3"><label class="form-label" th:text="#{feedback.comment}"></label><textarea name="comment" class="form-control" rows="3" maxlength="2000"></textarea></div>
+            <button class="btn btn-primary w-100" th:text="#{public.submit}"></button>
+        </form>
+    </div></div>
+</section>
+</body>
+</html>

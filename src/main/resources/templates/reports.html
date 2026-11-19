@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.reports}">Reports</title></head>
+<body>
+<section>
+    <div class="page-head">
+        <div><h1 th:text="#{report.title}"></h1><div class="sub"><span th:text="${scopeTitle}"></span> · <span class="ltr" th:text="${from + ' → ' + to}"></span></div></div>
+        <div class="actions no-print">
+            <a th:href="@{/reports/export.xlsx(from=${from},to=${to})}" class="btn btn-light"><i class="bi bi-file-earmark-spreadsheet"></i> <span th:text="#{report.excel}"></span></a>
+            <a th:href="@{/reports/export.pdf(from=${from},to=${to})}" class="btn btn-light"><i class="bi bi-file-earmark-pdf"></i> <span th:text="#{report.pdf}"></span></a>
+            <button onclick="window.print()" class="btn btn-light" th:attr="aria-label=#{common.print}"><i class="bi bi-printer"></i></button>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3 no-print">
+        <div class="segmented">
+            <a th:href="@{/reports(range='today')}" th:classappend="${range == 'today'} ? active" th:text="#{report.today}"></a>
+            <a th:href="@{/reports(range='week')}" th:classappend="${range == 'week'} ? active" th:text="#{report.week}"></a>
+            <a th:href="@{/reports(range='month')}" th:classappend="${range == 'month'} ? active" th:text="#{report.month}"></a>
+            <a th:href="@{/reports(range='lastMonth')}" th:classappend="${range == 'lastMonth'} ? active" th:text="#{report.lastMonth}"></a>
+            <a th:href="@{/reports(range='year')}" th:classappend="${range == 'year'} ? active" th:text="#{report.year}"></a>
+        </div>
+        <form class="d-flex gap-2 ms-auto" method="get">
+            <input type="date" name="from" class="form-control form-control-sm" th:value="${from}" th:attr="aria-label=#{common.from}">
+            <input type="date" name="to" class="form-control form-control-sm" th:value="${to}" th:attr="aria-label=#{common.to}">
+            <button class="btn btn-primary btn-sm" th:text="#{common.apply}"></button>
+        </form>
+    </div>
+
+    <div class="figures mb-2">
+        <div class="figure"><div class="val num" th:text="${rep.total}"></div><div class="lbl" th:text="#{report.total}"></div></div>
+        <div class="figure"><div class="val num" th:text="${rep.completed}"></div><div class="lbl" th:text="#{report.completed}"></div></div>
+        <div class="figure"><div class="val num" th:text="${rep.pending}"></div><div class="lbl" th:text="#{report.pending}"></div></div>
+        <div class="figure"><div class="val num"><span th:text="${rep.approvalRate}"></span><small>%</small></div><div class="lbl" th:text="#{report.approvalRate}"></div></div>
+        <div class="figure alert-fig"><div class="val num"><span th:text="${rep.rejectionRate}"></span><small>%</small></div><div class="lbl" th:text="#{report.rejectionRate}"></div></div>
+        <div class="figure"><div class="val num"><span th:text="${rep.noShowRate}"></span><small>%</small></div><div class="lbl" th:text="#{report.noShowRate}"></div></div>
+    </div>
+    <div class="figures mb-3">
+        <div class="figure"><div class="val num"><span th:text="${rep.avgWaitDays}"></span> <small th:text="#{common.daysUnit}"></small></div><div class="lbl" th:text="#{report.avgWait}"></div></div>
+        <div class="figure"><div class="val num"><span th:text="${rep.avgLobbyMinutes}"></span> <small th:text="#{common.minutes}"></small></div><div class="lbl" th:text="#{report.avgLobby}"></div></div>
+        <div class="figure"><div class="val num"><span th:text="${rep.avgMeetingMinutes}"></span> <small th:text="#{common.minutes}"></small></div><div class="lbl" th:text="#{report.avgMeeting}"></div></div>
+        <div class="figure"><div class="val num" th:text="${rep.delegationVisits}"></div><div class="lbl" th:text="#{report.delegations}"></div></div>
+        <div class="figure"><div class="val num" th:text="${rep.totalAttendees}"></div><div class="lbl" th:text="#{report.attendees}"></div></div>
+        <div class="figure accent-fig"><div class="val num"><span th:text="${rep.avgRating}"></span><small>/5</small></div><div class="lbl" th:text="#{report.avgRatingN(${rep.feedbackCount})}"></div></div>
+    </div>
+
+    <div class="panel mb-3" th:if="${#lists.size(rep.officeRows) > 1}">
+        <div class="panel-head"><h2 th:text="#{report.byOffice}"></h2></div>
+        <div class="table-responsive">
+            <table class="table">
+                <thead><tr><th th:text="#{office.office}"></th><th th:text="#{report.total}"></th><th th:text="#{report.completed}"></th><th th:text="#{report.pending}"></th>
+                    <th th:text="#{enum.VisitStatus.REJECTED}"></th><th th:text="#{report.approvalRate}"></th><th th:text="#{report.avgWait}"></th></tr></thead>
+                <tbody>
+                <tr th:each="row : ${rep.officeRows}">
+                    <td><span th:replace="~{fragments :: office(${row.office})}"></span></td>
+                    <td class="num fw-bold" th:text="${row.total}"></td><td class="num" th:text="${row.completed}"></td><td class="num" th:text="${row.pending}"></td>
+                    <td class="num" th:text="${row.rejected}"></td><td class="num" th:text="${row.approvalRate + '%'}"></td><td class="num" th:text="#{common.nDays(${row.avgWaitDays})}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-8"><div class="panel h-100"><div class="panel-head"><h2 th:text="#{report.perDay}"></h2></div><div class="panel-body"><canvas id="perDay" height="110"></canvas></div></div></div>
+        <div class="col-lg-4"><div class="panel h-100"><div class="panel-head"><h2 th:text="#{report.byStatus}"></h2></div><div class="panel-body"><canvas id="byStatus"></canvas></div></div></div>
+        <div class="col-lg-6"><div class="panel h-100"><div class="panel-head"><h2 th:text="#{report.perWeek}"></h2></div><div class="panel-body"><canvas id="perWeek" height="150"></canvas></div></div></div>
+        <div class="col-lg-6"><div class="panel h-100"><div class="panel-head"><h2 th:text="#{report.perMonth}"></h2></div><div class="panel-body"><canvas id="perMonth" height="150"></canvas></div></div></div>
+        <div class="col-lg-6"><div class="panel h-100"><div class="panel-head"><h2 th:text="#{report.byPurpose}"></h2></div><div class="panel-body"><canvas id="byPurpose" height="200"></canvas></div></div></div>
+        <div class="col-lg-6"><div class="panel h-100"><div class="panel-head"><h2 th:text="#{report.byGovernorate}"></h2></div><div class="panel-body"><canvas id="byGovernorate" height="200"></canvas></div></div></div>
+        <div class="col-lg-4"><div class="panel h-100"><div class="panel-head"><h2 th:text="#{report.byOrgType}"></h2></div><div class="panel-body"><canvas id="byOrgType"></canvas></div></div></div>
+        <div class="col-lg-4"><div class="panel h-100"><div class="panel-head"><h2 th:text="#{report.byChannel}"></h2></div><div class="panel-body"><canvas id="byChannel"></canvas></div></div></div>
+        <div class="col-lg-4"><div class="panel h-100"><div class="panel-head"><h2 th:text="#{report.byPriority}"></h2></div><div class="panel-body"><canvas id="byPriority"></canvas></div></div></div>
+        <div class="col-lg-6">
+            <div class="panel h-100"><div class="panel-head"><h2 th:text="#{report.topOrgs}"></h2></div>
+                <ul class="list" th:if="${!#maps.isEmpty(rep.topOrganizations)}"><li th:each="e : ${rep.topOrganizations}"><span class="grow" th:text="${e.key}"></span><b class="num" th:text="${e.value}"></b></li></ul>
+                <div th:if="${#maps.isEmpty(rep.topOrganizations)}" class="panel-empty" th:text="#{common.none}"></div></div>
+        </div>
+        <div class="col-lg-6">
+            <div class="panel h-100"><div class="panel-head"><h2 th:text="#{report.byManager}"></h2></div>
+                <ul class="list" th:if="${!#maps.isEmpty(rep.byManager)}"><li th:each="e : ${rep.byManager}"><span class="grow" th:text="${e.key}"></span><b class="num" th:text="${e.value}"></b></li></ul>
+                <div th:if="${#maps.isEmpty(rep.byManager)}" class="panel-empty" th:text="#{common.none}"></div></div>
+        </div>
+    </div>
+
+    <script th:src="@{/vendor/chartjs/chart.umd.js}"></script>
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+            Chart.defaults.color = '#5b6b7c';
+            Chart.defaults.borderColor = '#edf1f5';
+            const rtl = /*[[${rtl}]]*/ false;
+            const palette = ['#003049', '#f77f00', '#05668d', '#9e2a2b', '#373d20', '#f68e5f', '#001d3d', '#7aa6b8', '#c9a227', '#8c917b', '#d97b7c', '#4f6d7a'];
+            const keys = o => Object.keys(o || {});
+            const vals = o => Object.values(o || {});
+            function bar(id, data, horizontal, color) {
+                new Chart(document.getElementById(id), {
+                    type: 'bar',
+                    data: { labels: keys(data), datasets: [{ data: vals(data), backgroundColor: color || palette[0], borderRadius: 5, maxBarThickness: 34 }] },
+                    options: { indexAxis: horizontal ? 'y' : 'x', plugins: { legend: { display: false } },
+                        scales: { x: { reverse: rtl && !horizontal, ticks: { precision: 0 }, grid: { display: !horizontal } },
+                                  y: { position: rtl ? 'right' : 'left', ticks: { precision: 0 }, grid: { display: horizontal ? false : true } } } }
+                });
+            }
+            function doughnut(id, data) {
+                new Chart(document.getElementById(id), {
+                    type: 'doughnut',
+                    data: { labels: keys(data), datasets: [{ data: vals(data), backgroundColor: palette, borderWidth: 2, borderColor: '#fff' }] },
+                    options: { cutout: '62%', plugins: { legend: { position: 'bottom', rtl: rtl, labels: { boxWidth: 10, usePointStyle: true } } } }
+                });
+            }
+            const perDay = /*[[${rep.visitsPerDay}]]*/ {};
+            const reqPerDay = /*[[${rep.requestsPerDay}]]*/ {};
+            new Chart(document.getElementById('perDay'), {
+                type: 'line',
+                data: { labels: keys(perDay), datasets: [
+                    { label: /*[[#{report.visits}]]*/ 'Visits', data: vals(perDay), borderColor: '#f77f00', backgroundColor: 'rgba(247,127,0,.12)', fill: true, tension: .35, pointRadius: 2 },
+                    { label: /*[[#{report.requests}]]*/ 'Requests', data: vals(reqPerDay), borderColor: '#003049', tension: .35, pointRadius: 2 }] },
+                options: { plugins: { legend: { rtl: rtl, labels: { usePointStyle: true, boxWidth: 8 } } },
+                    scales: { x: { reverse: rtl, grid: { display: false } }, y: { position: rtl ? 'right' : 'left', ticks: { precision: 0 }, beginAtZero: true } } }
+            });
+            bar('perWeek', /*[[${rep.visitsPerWeek}]]*/ {}, false, '#05668d');
+            bar('perMonth', /*[[${rep.visitsPerMonth}]]*/ {}, false, '#003049');
+            const t = /*[[${charts}]]*/ {};
+            doughnut('byStatus', t.status);
+            bar('byPurpose', t.purpose, true, '#f77f00');
+            bar('byGovernorate', t.governorate, true, '#05668d');
+            doughnut('byOrgType', t.orgType);
+            doughnut('byChannel', t.channel);
+            doughnut('byPriority', t.priority);
+        });
+    </script>
+</section>
+</body>
+</html>

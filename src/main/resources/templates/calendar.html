@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.calendar}">Calendar</title></head>
+<body>
+<section>
+    <div class="page-head">
+        <div><h1 th:text="#{nav.calendar}"></h1><div class="sub" th:text="${currentOffice != null} ? ${currentOffice.name} : #{scope.allOffices}"></div></div>
+        <div class="actions">
+            <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#syncModal"><i class="bi bi-arrow-repeat"></i> <span th:text="#{cal.sync}"></span></button>
+            <button th:if="${canPlan}" class="btn btn-accent" id="btnNew"><i class="bi bi-plus-lg"></i> <span th:text="#{cal.new}"></span></button>
+        </div>
+    </div>
+
+    <div class="cal-layout">
+        <!-- ===== Side ===== -->
+        <aside class="cal-side">
+            <div class="panel mini-cal">
+                <div class="mini-cal-head">
+                    <button class="btn btn-ghost btn-sm" id="miniPrev" th:attr="aria-label=#{common.previous}"><i class="bi bi-chevron-left flip-rtl"></i></button>
+                    <b id="miniTitle"></b>
+                    <button class="btn btn-ghost btn-sm" id="miniNext" th:attr="aria-label=#{common.next}"><i class="bi bi-chevron-right flip-rtl"></i></button>
+                </div>
+                <div class="mini-cal-grid" id="miniGrid"></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head"><h3 th:text="#{cal.show}"></h3></div>
+                <div class="panel-body">
+                    <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="fBlocks" checked>
+                        <label class="form-check-label" for="fBlocks" th:text="#{cal.showBlocks}"></label></div>
+                    <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="fDone" checked>
+                        <label class="form-check-label" for="fDone" th:text="#{cal.showDone}"></label></div>
+                    <div class="legend">
+                        <span><i style="background:#e1f0f6;border-inline-start:3px solid #05668d"></i><span th:text="#{enum.VisitStatus.SCHEDULED}"></span></span>
+                        <span><i style="background:#fff0de;border-inline-start:3px solid #f9a63a"></i><span th:text="#{enum.VisitStatus.CHECKED_IN}"></span></span>
+                        <span><i style="background:#f77f00"></i><span th:text="#{enum.VisitStatus.IN_MEETING}"></span></span>
+                        <span><i style="background:#eceee6;border-inline-start:3px solid #373d20"></i><span th:text="#{enum.VisitStatus.COMPLETED}"></span></span>
+                        <span><i style="background:#f6e3e3;border-inline-start:3px solid #9e2a2b"></i><span th:text="#{cal.blocked}"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" th:if="${canPlan}">
+                <div class="panel-head"><h3 th:text="#{cal.readyToSchedule}"></h3><span class="small-muted" th:text="${#lists.size(approvedUnscheduled)}"></span></div>
+                <div class="panel-body" id="dragList">
+                    <p class="small-muted" th:if="${!#lists.isEmpty(approvedUnscheduled)}" th:text="#{cal.dragHint}"></p>
+                    <div th:each="r : ${approvedUnscheduled}" class="drag-item" th:data-id="${r.id}" th:data-office="${r.office.id}"
+                         th:data-duration="${r.durationMinutes}" th:data-title="${r.visitor.shortName}" tabindex="0">
+                        <div class="t"><span class="dot me-1" th:style="'background:' + ${r.office.color}"></span><span th:text="${r.visitor.shortName}"></span></div>
+                        <div class="row-sub truncate" th:text="${r.subject}"></div>
+                        <div class="row-sub" th:text="#{common.nMinutes(${r.durationMinutes})}"></div>
+                    </div>
+                    <div th:if="${#lists.isEmpty(approvedUnscheduled)}" class="small-muted" th:text="#{cal.noApproved}"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ===== Calendar ===== -->
+        <div class="panel">
+            <div class="cal-toolbar">
+                <div class="btn-group" role="group">
+                    <button class="btn btn-light btn-sm" id="calPrev" th:attr="aria-label=#{common.previous}"><i class="bi bi-chevron-left flip-rtl"></i></button>
+                    <button class="btn btn-light btn-sm" id="calToday" th:text="#{cal.today}"></button>
+                    <button class="btn btn-light btn-sm" id="calNext" th:attr="aria-label=#{common.next}"><i class="bi bi-chevron-right flip-rtl"></i></button>
+                </div>
+                <h2 id="calTitle"></h2>
+                <span class="spacer"></span>
+                <div class="segmented" id="calViews">
+                    <button data-view="timeGridDay" th:text="#{cal.day}"></button>
+                    <button data-view="timeGridWeek" class="active" th:text="#{cal.week}"></button>
+                    <button data-view="dayGridMonth" th:text="#{cal.month}"></button>
+                    <button data-view="listWeek" th:text="#{cal.list}"></button>
+                </div>
+            </div>
+            <div id="calendar"></div>
+        </div>
+    </div>
+
+    <!-- ===== New: schedule a visit or block time ===== -->
+    <div class="modal fade" id="newModal" tabindex="-1" aria-hidden="true" th:if="${canPlan}">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newModalTitle" th:text="#{cal.new}"></h5>
+                    <button type="button" class="btn-close ms-0" data-bs-dismiss="modal" th:attr="aria-label=#{common.close}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="segmented w-100 mb-3">
+                        <button type="button" class="flex-fill active" data-pane="paneVisit" th:text="#{cal.scheduleVisit}"></button>
+                        <button type="button" class="flex-fill" data-pane="paneBlock" th:text="#{cal.blockTime}"></button>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-7"><label class="form-label" for="nStart" th:text="#{req.start}"></label><input type="datetime-local" class="form-control" id="nStart"></div>
+                        <div class="col-5"><label class="form-label" for="nEnd" th:text="#{cal.end}"></label><input type="datetime-local" class="form-control" id="nEnd"></div>
+                    </div>
+                    <div id="paneVisit">
+                        <label class="form-label" for="nRequest" th:text="#{cal.chooseRequest}"></label>
+                        <select class="form-select" id="nRequest">
+                            <option th:each="r : ${approvedUnscheduled}" th:value="${r.id}" th:text="${r.visitor.shortName + ' — ' + r.subject}"></option>
+                        </select>
+                        <div class="form-text" th:if="${#lists.isEmpty(approvedUnscheduled)}" th:text="#{cal.noApproved}"></div>
+                    </div>
+                    <div id="paneBlock" class="d-none">
+                        <div class="mb-2"><label class="form-label" for="bOffice" th:text="#{office.office}"></label>
+                            <select class="form-select" id="bOffice">
+                                <option th:each="o : ${myOffices}" th:value="${o.id}" th:text="${o.name}" th:selected="${defaultOffice != null and defaultOffice.id == o.id}"></option></select></div>
+                        <div class="mb-2"><label class="form-label" for="bTitle" th:text="#{cal.blockTitle}"></label><input class="form-control" id="bTitle"></div>
+                        <div class="mb-2"><label class="form-label" for="bType" th:text="#{cal.blockType}"></label>
+                            <select class="form-select" id="bType"><option th:each="e : ${@labels.values('BlockType')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                        <div class="mb-2"><label class="form-label" for="bNotes" th:text="#{visitor.notes}"></label><textarea class="form-control" id="bNotes" rows="2"></textarea></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" th:text="#{common.cancel}"></button>
+                    <button type="button" class="btn btn-primary" id="nSave" th:text="#{common.save}"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Event details drawer ===== -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="eventDrawer" style="width:380px">
+        <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title" id="dTitle"></h5>
+            <button type="button" class="btn-close ms-0" data-bs-dismiss="offcanvas" th:attr="aria-label=#{common.close}"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+            <div class="drawer-section"><div id="dWhen" class="fw-semibold"></div><div id="dOffice" class="small-muted mt-1"></div></div>
+            <div class="drawer-section" id="dBody"></div>
+            <div class="drawer-section d-flex flex-wrap gap-2" id="dActions"></div>
+        </div>
+    </div>
+
+    <!-- ===== Calendar subscription ===== -->
+    <div class="modal fade" id="syncModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" th:text="#{cal.sync}"></h5>
+                    <button type="button" class="btn-close ms-0" data-bs-dismiss="modal" th:attr="aria-label=#{common.close}"></button></div>
+                <div class="modal-body">
+                    <p class="small" th:text="#{cal.syncHint}"></p>
+                    <input class="form-control" readonly dir="ltr" onclick="this.select()" th:attr="aria-label=#{cal.sync}"
+                           th:value="${@notificationService.baseUrl() + '/calendar/feed/' + feedToken + '.ics'}">
+                </div>
+                <div class="modal-footer">
+                    <form th:action="@{/profile/calendar-token}" method="post" th:data-confirm="#{common.areYouSure}">
+                        <button class="btn btn-light" th:text="#{cal.newLink}"></button></form>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" th:text="#{common.close}"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/vendor/fullcalendar/index.global.min.js}"></script>
+    <script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        const T = {
+            rtl: /*[[${rtl}]]*/ false,
+            sep: /*[[${rtl} ? '، ' : ', ']]*/ ', ',
+            months: /*[[${@dates.monthNames()}]]*/ [],
+            days: /*[[${@dates.dayNamesJs()}]]*/ [],
+            daysShort: /*[[${@dates.dayShortNamesJs()}]]*/ [],
+            allDay: /*[[#{cal.allDay}]]*/ 'All day',
+            more: /*[[#{cal.more}]]*/ 'more',
+            noEvents: /*[[#{cal.noEvents}]]*/ 'Nothing scheduled',
+            confirmMove: /*[[#{cal.confirmMove}]]*/ 'Move?',
+            force: /*[[#{cal.forceMove}]]*/ 'Book anyway?',
+            saved: /*[[#{msg.saved}]]*/ 'Saved',
+            scheduled: /*[[#{msg.scheduled}]]*/ 'Scheduled',
+            open: /*[[#{cal.openRequest}]]*/ 'Open',
+            checkIn: /*[[#{action.checkIn}]]*/ 'Check in',
+            del: /*[[#{cal.deleteBlock}]]*/ 'Delete',
+            sure: /*[[#{common.areYouSure}]]*/ 'Sure?',
+            visitor: /*[[#{req.visitor}]]*/ 'Visitor',
+            phone: /*[[#{visitor.phone}]]*/ 'Phone',
+            location: /*[[#{req.location}]]*/ 'Location',
+            people: /*[[#{req.attendees}]]*/ 'People',
+            status: /*[[#{req.status}]]*/ 'Status',
+            needTitle: /*[[#{error.required}]]*/ 'Required'
+        };
+        const canPlan = /*[[${canPlan}]]*/ false;
+        const canReceive = /*[[${@currentUser.is('RECEPTION','SECRETARY','SECURITY','DIRECTOR','ADMIN')}]]*/ false;
+        const officeFilter = /*[[${currentOffice != null ? currentOffice.id : null}]]*/ null;
+        const pad = n => String(n).padStart(2, '0');
+        const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+        const hm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
+        const longDate = d => d.getDate() + ' ' + T.months[d.getMonth()] + ' ' + d.getFullYear();
+        const esc = s => { const x = document.createElement('span'); x.textContent = s == null ? '' : String(s); return x.innerHTML; };
+
+        function post(url, data) {
+            return fetch(url, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/x-www-form-urlencoded' }, csrfHeaders()),
+                body: new URLSearchParams(data) }).then(r => r.json());
+        }
+
+        // Mini month state. Declared BEFORE the calendar: cal.render() fires datesSet synchronously, which calls
+        // renderMini(); a later `let` declaration threw "Cannot access 'mini' before initialization" there, which
+        // aborted render() (blank grid) and the rest of this script (empty mini month, dead toolbar).
+        let mini = new Date(); mini.setDate(1);
+
+        // ---------------- main calendar ----------------
+        const el = document.getElementById('calendar');
+        const cal = new FullCalendar.Calendar(el, {
+            initialView: window.innerWidth < 768 ? 'listWeek' : 'timeGridWeek',
+            headerToolbar: false,
+            direction: T.rtl ? 'rtl' : 'ltr',
+            locale: 'en-gb', // Latin digits and 24h clock; all visible names come from T (ckb/ar/en)
+            firstDay: 6,
+            height: 'auto',
+            nowIndicator: true,
+            slotMinTime: '07:00:00', slotMaxTime: '19:00:00', scrollTime: '08:00:00',
+            slotDuration: '00:15:00', slotLabelInterval: '01:00',
+            businessHours: { daysOfWeek: [0, 1, 2, 3, 4], startTime: '08:00', endTime: '16:00' },
+            allDayText: T.allDay, noEventsText: T.noEvents,
+            moreLinkText: n => '+' + n + ' ' + T.more,
+            eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+            slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+            dayHeaderContent: arg => {
+                const d = arg.date;
+                if (arg.view.type === 'dayGridMonth') return T.daysShort[d.getDay()];
+                if (arg.view.type.indexOf('list') === 0) return { html: '<b>' + esc(T.days[d.getDay()]) + '</b>' + esc(T.sep) + esc(longDate(d)) };
+                return { html: '<span class="d-block">' + esc(T.daysShort[d.getDay()]) + '</span><b class="fs-6">' + d.getDate() + '</b>' };
+            },
+            editable: canPlan, droppable: canPlan, selectable: canPlan, selectMirror: true,
+            eventDurationEditable: canPlan,
+            events: (info, ok, fail) => {
+                const q = new URLSearchParams({ start: iso(info.start), end: iso(info.end),
+                    showBlocks: document.getElementById('fBlocks').checked, showDone: document.getElementById('fDone').checked });
+                if (officeFilter) q.set('office', officeFilter);
+                fetch('/calendar/events?' + q).then(r => r.json()).then(ok).catch(fail);
+            },
+            eventContent: arg => {
+                const p = arg.event.extendedProps;
+                const dot = '<span class="ev-office" style="background:' + esc(p.officeColor) + '"></span>';
+                const time = arg.timeText ? '<span class="ltr me-1">' + esc(arg.timeText) + '</span>' : '';
+                const sub = p.type === 'visit' ? esc(p.subject) : esc(p.blockType);
+                if (arg.view.type.indexOf('timeGrid') === 0) {
+                    return { html: '<div class="px-1">' + dot + time + '<span class="ev-title">' + esc(arg.event.title) + '</span>'
+                        + '<div class="ev-sub text-truncate">' + sub + '</div></div>' };
+                }
+                return { html: '<div class="px-1 text-truncate">' + dot + time + '<span class="ev-title">' + esc(arg.event.title) + '</span></div>' };
+            },
+            datesSet: () => { const c = cal.getDate(); mini = new Date(c.getFullYear(), c.getMonth(), 1); renderTitle(); renderMini(); },
+            eventClick: info => { info.jsEvent.preventDefault(); openDrawer(info.event); },
+            eventDrop: moved, eventResize: moved,
+            select: info => openNew(info.start, info.end),
+            dateClick: info => { if (cal.view.type === 'dayGridMonth') { cal.changeView('timeGridDay', info.date); } },
+            eventReceive: info => {
+                const id = info.event.extendedProps.requestId;
+                let start = info.event.start;
+                if (info.event.allDay) { start = new Date(start); start.setHours(9, 0, 0, 0); }
+                schedule(id, start, info.event.extendedProps.duration, false, () => info.event.remove());
+            }
+        });
+        cal.render();
+
+        function schedule(id, start, duration, force, onFail) {
+            post('/calendar/schedule', { requestId: id, start: iso(start), duration: duration || 0, force: force }).then(res => {
+                if (res.ok) {
+                    toast(T.scheduled);
+                    const item = document.querySelector('.drag-item[data-id="' + id + '"]');
+                    if (item) item.remove();
+                    const opt = document.querySelector('#nRequest option[value="' + id + '"]');
+                    if (opt) opt.remove();
+                    cal.refetchEvents();
+                    if (onFail) onFail(); // the dropped placeholder is replaced by the real event
+                } else if (!force && confirm(res.error + '\n\n' + T.force)) {
+                    schedule(id, start, duration, true, onFail);
+                } else {
+                    toast(res.error, 'danger');
+                    if (onFail) onFail();
+                }
+            });
+        }
+
+        function moved(info) {
+            const p = info.event.extendedProps;
+            if (p.type !== 'visit' || !confirm(T.confirmMove)) { info.revert(); return; }
+            const send = force => post('/calendar/events/' + p.requestId + '/move',
+                { start: iso(info.event.start), end: info.event.end ? iso(info.event.end) : '', force: force }).then(res => {
+                if (res.ok) { toast(T.saved); cal.refetchEvents(); }
+                else if (!force && confirm(res.error + '\n\n' + T.force)) { send(true); }
+                else { toast(res.error, 'danger'); info.revert(); }
+            });
+            send(false);
+        }
+
+        // ---------------- toolbar ----------------
+        function renderTitle() {
+            const v = cal.view, s = v.currentStart, e = new Date(v.currentEnd.getTime() - 1);
+            let t;
+            if (v.type === 'dayGridMonth') t = T.months[s.getMonth()] + ' ' + s.getFullYear();
+            else if (v.type === 'timeGridDay') t = T.days[s.getDay()] + T.sep + longDate(s);
+            else t = (s.getMonth() === e.getMonth() ? s.getDate() : s.getDate() + ' ' + T.months[s.getMonth()]) + ' – ' + longDate(e);
+            document.getElementById('calTitle').textContent = t;
+            document.querySelectorAll('#calViews button').forEach(b => b.classList.toggle('active', b.dataset.view === v.type));
+        }
+        document.getElementById('calPrev').onclick = () => cal.prev();
+        document.getElementById('calNext').onclick = () => cal.next();
+        document.getElementById('calToday').onclick = () => cal.today();
+        document.querySelectorAll('#calViews button').forEach(b => b.onclick = () => cal.changeView(b.dataset.view));
+        document.getElementById('fBlocks').onchange = () => cal.refetchEvents();
+        document.getElementById('fDone').onchange = () => cal.refetchEvents();
+
+        // ---------------- mini month ----------------
+        function renderMini() {
+            const grid = document.getElementById('miniGrid');
+            document.getElementById('miniTitle').textContent = T.months[mini.getMonth()] + ' ' + mini.getFullYear();
+            grid.innerHTML = '';
+            for (let i = 0; i < 7; i++) { const d = document.createElement('div'); d.className = 'dn'; d.textContent = T.daysShort[(6 + i) % 7]; grid.appendChild(d); }
+            const first = new Date(mini); const offset = (first.getDay() - 6 + 7) % 7;
+            const start = new Date(first); start.setDate(1 - offset);
+            const today = new Date(); const sel = cal.getDate();
+            for (let i = 0; i < 42; i++) {
+                const d = new Date(start); d.setDate(start.getDate() + i);
+                const b = document.createElement('button'); b.type = 'button'; b.textContent = d.getDate();
+                if (d.getMonth() !== mini.getMonth()) b.classList.add('other');
+                if (d.toDateString() === today.toDateString()) b.classList.add('today');
+                if (d.toDateString() === sel.toDateString()) b.classList.add('sel');
+                b.onclick = () => { cal.changeView(cal.view.type === 'dayGridMonth' ? 'timeGridDay' : cal.view.type, d); };
+                grid.appendChild(b);
+            }
+        }
+        document.getElementById('miniPrev').onclick = () => { mini.setMonth(mini.getMonth() - 1); renderMini(); };
+        document.getElementById('miniNext').onclick = () => { mini.setMonth(mini.getMonth() + 1); renderMini(); };
+
+        // ---------------- drag approved requests onto the calendar ----------------
+        const dragList = document.getElementById('dragList');
+        if (dragList && canPlan) {
+            new FullCalendar.Draggable(dragList, {
+                itemSelector: '.drag-item',
+                eventData: item => ({
+                    title: item.dataset.title, create: true,
+                    duration: { minutes: parseInt(item.dataset.duration, 10) || 30 },
+                    extendedProps: { requestId: item.dataset.id, duration: item.dataset.duration, type: 'visit', officeColor: '#05668d', subject: '' }
+                })
+            });
+        }
+
+        // ---------------- new: schedule or block ----------------
+        const newModalEl = document.getElementById('newModal');
+        const newModal = newModalEl ? new bootstrap.Modal(newModalEl) : null;
+        let pane = 'paneVisit';
+        if (newModalEl) {
+            newModalEl.querySelectorAll('[data-pane]').forEach(b => b.onclick = () => {
+                pane = b.dataset.pane;
+                newModalEl.querySelectorAll('[data-pane]').forEach(x => x.classList.toggle('active', x === b));
+                document.getElementById('paneVisit').classList.toggle('d-none', pane !== 'paneVisit');
+                document.getElementById('paneBlock').classList.toggle('d-none', pane !== 'paneBlock');
+            });
+        }
+        function openNew(start, end) {
+            if (!newModal) return;
+            const s = start || (() => { const d = new Date(); d.setMinutes(0, 0, 0); d.setHours(d.getHours() + 1); return d; })();
+            const e = end && (end - s) > 0 ? end : new Date(s.getTime() + 30 * 60000);
+            document.getElementById('nStart').value = iso(s);
+            document.getElementById('nEnd').value = iso(e);
+            newModal.show();
+            cal.unselect();
+        }
+        const btnNew = document.getElementById('btnNew');
+        if (btnNew) btnNew.onclick = () => openNew(null, null);
+        const nSave = document.getElementById('nSave');
+        if (nSave) nSave.onclick = () => {
+            const s = new Date(document.getElementById('nStart').value);
+            const e = new Date(document.getElementById('nEnd').value);
+            if (pane === 'paneVisit') {
+                const id = document.getElementById('nRequest').value;
+                if (!id) return;
+                schedule(id, s, Math.max(5, Math.round((e - s) / 60000)), false, null);
+                newModal.hide();
+            } else {
+                const title = document.getElementById('bTitle').value.trim();
+                if (!title) { toast(T.needTitle, 'danger'); return; }
+                post('/calendar/blocks', { officeId: document.getElementById('bOffice').value, title: title,
+                    type: document.getElementById('bType').value, start: iso(s), end: iso(e),
+                    notes: document.getElementById('bNotes').value }).then(res => {
+                    if (res.ok) { toast(res.warning || T.saved, res.warning ? 'warning' : 'success'); cal.refetchEvents(); newModal.hide(); }
+                    else toast(res.error, 'danger');
+                });
+            }
+        };
+
+        // ---------------- event drawer ----------------
+        const drawer = new bootstrap.Offcanvas(document.getElementById('eventDrawer'));
+        function openDrawer(ev) {
+            const p = ev.extendedProps;
+            document.getElementById('dTitle').textContent = p.type === 'visit' ? ev.title : ev.title;
+            const day = T.days[ev.start.getDay()] + T.sep + longDate(ev.start);
+            document.getElementById('dWhen').textContent = day + '  ' + hm(ev.start) + (ev.end ? ' – ' + hm(ev.end) : '');
+            document.getElementById('dOffice').innerHTML = '<span class="dot me-1" style="background:' + esc(p.officeColor) + '"></span>' + esc(p.office);
+            const body = document.getElementById('dBody'), actions = document.getElementById('dActions');
+            actions.innerHTML = '';
+            if (p.type === 'visit') {
+                body.innerHTML = '<div class="mb-2"><span class="pill st-' + esc(p.statusKey) + '">' + esc(p.status) + '</span> '
+                    + (p.priorityKey !== 'NORMAL' ? '<span class="pr pr-' + esc(p.priorityKey) + '">' + esc(p.priority) + '</span>' : '')
+                    + (p.flag ? ' <span class="tag danger"><i class="bi bi-shield-exclamation"></i></span>' : '') + '</div>'
+                    + '<div class="fw-semibold mb-2">' + esc(p.subject) + '</div>'
+                    + '<dl class="kv"><dt>' + esc(T.visitor) + '</dt><dd>' + esc(p.visitor) + (p.organization ? '<div class="row-sub">' + esc(p.organization) + '</div>' : '') + '</dd>'
+                    + '<dt>' + esc(T.phone) + '</dt><dd class="ltr">' + esc(p.phone) + '</dd>'
+                    + '<dt>' + esc(T.location) + '</dt><dd>' + esc(p.location || '—') + '</dd>'
+                    + '<dt>' + esc(T.people) + '</dt><dd>' + esc(p.attendees) + '</dd></dl>'
+                    + '<div class="row-sub ltr mt-2">' + esc(p.ref) + '</div>';
+                const a = document.createElement('a'); a.className = 'btn btn-primary btn-sm'; a.href = '/requests/' + p.requestId; a.textContent = T.open;
+                actions.appendChild(a);
+                if (canReceive && p.statusKey === 'SCHEDULED') {
+                    const f = document.createElement('form'); f.method = 'post'; f.action = '/requests/' + p.requestId + '/checkin';
+                    const tok = document.querySelector('meta[name="_csrf"]');
+                    if (tok && tok.content) { const i = document.createElement('input'); i.type = 'hidden'; i.name = '_csrf'; i.value = tok.content; f.appendChild(i); }
+                    const back = document.createElement('input'); back.type = 'hidden'; back.name = 'back'; back.value = '/calendar'; f.appendChild(back);
+                    const b = document.createElement('button'); b.className = 'btn btn-accent btn-sm'; b.textContent = T.checkIn; f.appendChild(b);
+                    actions.appendChild(f);
+                }
+            } else {
+                body.innerHTML = '<div class="tag danger mb-2">' + esc(p.blockType) + '</div>' + (p.notes ? '<p class="mb-0">' + esc(p.notes) + '</p>' : '');
+                if (canPlan) {
+                    const b = document.createElement('button'); b.className = 'btn btn-outline-danger btn-sm'; b.textContent = T.del;
+                    b.onclick = () => { if (!confirm(T.sure)) return; post('/calendar/blocks/' + p.blockId + '/delete', {}).then(() => { drawer.hide(); cal.refetchEvents(); }); };
+                    actions.appendChild(b);
+                }
+            }
+            drawer.show();
+        }
+    });
+    </script>
+</section>
+</body>
+</html>

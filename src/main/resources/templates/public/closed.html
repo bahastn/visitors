@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{public/layout :: page(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.publicForm}">Closed</title></head>
+<body><section>
+    <div class="panel panel-empty py-5"><i class="bi bi-door-closed"></i><span th:text="#{public.closed}"></span>
+        <a class="btn btn-primary mt-3" th:href="@{/public/track}" th:text="#{public.trackTitle}"></a></div>
+</section></body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.backups}">Backups</title></head>
+<body>
+<section>
+    <div class="page-head">
+        <div><h1 th:text="#{nav.backups}"></h1><div class="sub" th:text="#{backup.help}"></div></div>
+        <form th:action="@{/admin/backups}" method="post"><button class="btn btn-primary"><i class="bi bi-database-down"></i> <span th:text="#{backup.runNow}"></span></button></form>
+    </div>
+    <div class="panel" style="max-width:900px">
+        <table class="table">
+            <thead><tr><th th:text="#{backup.file}"></th><th th:text="#{backup.size}"></th><th th:text="#{common.time}"></th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="b : ${backups}">
+                <td class="ltr" th:text="${b.name}"></td>
+                <td class="num ltr" th:text="${#numbers.formatDecimal(b.sizeBytes / 1024.0 / 1024.0, 1, 2) + ' MB'}"></td>
+                <td class="ltr" th:text="${@dates.dt(b.created)}"></td>
+                <td class="text-end"><a th:href="@{/admin/backups/{n}(n=${b.name})}" class="btn btn-light btn-sm"><i class="bi bi-download"></i> <span th:text="#{common.download}"></span></a></td>
+            </tr>
+            </tbody>
+        </table>
+        <div th:if="${#lists.isEmpty(backups)}" class="panel-empty" th:text="#{backup.none}"></div>
+    </div>
+</section>
+</body>
+</html>

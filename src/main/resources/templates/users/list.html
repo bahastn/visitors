@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.users}">Users</title></head>
+<body>
+<section>
+    <div class="page-head">
+        <div><h1 th:text="#{nav.users}"></h1><div class="sub" th:text="#{user.listSub(${#lists.size(users)})}"></div></div>
+        <div class="actions"><a th:href="@{/users/new}" class="btn btn-accent"><i class="bi bi-person-plus"></i> <span th:text="#{user.new}"></span></a></div>
+    </div>
+    <div class="panel">
+        <form class="filter-bar" method="get">
+            <select class="form-select" name="office" onchange="this.form.submit()" th:attr="aria-label=#{office.office}"><option value="" th:text="#{scope.allOffices}"></option>
+                <option th:each="o : ${offices}" th:value="${o.id}" th:text="${o.name}" th:selected="${f_office == o.id}"></option></select>
+            <select class="form-select" name="role" onchange="this.form.submit()" th:attr="aria-label=#{user.role}"><option value="" th:text="#{filter.anyRole}"></option>
+                <option th:each="r : ${@labels.values('Role')}" th:value="${r}" th:text="${@labels.t(r)}" th:selected="${f_role == r}"></option></select>
+        </form>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th th:text="#{user.fullName}"></th><th th:text="#{user.role}"></th><th th:text="#{user.offices}"></th>
+                    <th th:text="#{user.twoFactorShort}"></th><th th:text="#{user.lastLogin}"></th><th th:text="#{req.status}"></th></tr></thead>
+                <tbody>
+                <tr th:each="u : ${users}" th:data-href="@{/users/{id}/edit(id=${u.id})}" th:style="${!u.enabled} ? 'opacity:.55' : ''">
+                    <td><div class="person"><span class="avatar" th:text="${#strings.substring(u.fullName, 0, 1)}"></span>
+                        <div><div class="row-title" th:text="${u.fullName}"></div><div class="row-sub ltr" th:text="${u.username}"></div></div></div></td>
+                    <td><span class="tag" th:text="${@labels.t(u.role)}"></span></td>
+                    <td class="small">
+                        <span th:if="${u.allOffices}" class="tag info" th:text="#{scope.allOffices}"></span>
+                        <th:block th:unless="${u.allOffices}">
+                            <th:block th:if="${u.office}"><span th:replace="~{fragments :: office(${u.office})}"></span></th:block>
+                            <span th:each="x : ${u.extraOffices}" class="d-block"><span th:replace="~{fragments :: office(${x})}"></span></span>
+                        </th:block></td>
+                    <td><i th:class="${u.totpEnabled} ? 'bi bi-shield-check' : 'bi bi-shield'" th:style="${u.totpEnabled} ? 'color:var(--olive)' : 'color:var(--faint)'"></i></td>
+                    <td class="small-muted ltr" th:text="${@dates.dt(u.lastLoginAt)}"></td>
+                    <td><span class="tag" th:classappend="${u.enabled} ? info : ''" th:text="${u.enabled} ? #{common.active} : #{common.inactive}"></span></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-head"><h2 th:text="#{user.rolesHelp}"></h2></div>
+        <ul class="list">
+            <li th:each="r : ${@labels.values('Role')}"><span class="tag" style="min-width:150px" th:text="${@labels.t(r)}"></span><span class="small" th:text="#{${'role.help.' + r}}"></span></li>
+        </ul>
+    </div>
+</section>
+</body>
+</html>

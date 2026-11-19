@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{public/layout :: page(~{::title}, ~{::section})}">
+<head><title th:text="#{public.thanks}">Thank you</title></head>
+<body>
+<section>
+    <div class="panel mx-auto text-center" style="max-width:560px">
+        <div class="panel-body py-5">
+            <div class="done-mark"><i class="bi bi-check-lg"></i></div>
+            <h1 class="h4 mt-3" th:text="#{public.thanks}"></h1>
+            <p class="small-muted" th:text="#{public.received}"></p>
+            <th:block th:if="${ref != '-'}">
+                <div class="small-muted mt-4" th:text="#{req.ref}"></div>
+                <div class="ref-big ltr" th:text="${ref}"></div>
+                <p class="small-muted" th:text="#{public.keepRef}"></p>
+                <a th:href="@{/public/track(ref=${ref})}" class="btn btn-primary" th:text="#{public.trackTitle}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+</body>
+</html>

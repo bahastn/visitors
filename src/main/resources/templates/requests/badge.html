@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${lang}" th:dir="${rtl} ? 'rtl' : 'ltr'">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="#{req.printBadge}">Badge</title>
+    <link rel="stylesheet" th:href="${rtl} ? @{/vendor/bootstrap/bootstrap.rtl.min.css} : @{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>@page { size: auto; margin: 5mm; } body { background: #fff; }</style>
+</head>
+<body onload="window.print()">
+<div class="no-print text-center p-2"><button class="btn btn-primary" onclick="window.print()" th:text="#{req.printBadge}"></button></div>
+<div class="badge-print">
+    <div class="badge-head d-flex justify-content-between align-items-center pb-1">
+        <div><div class="fw-bold small" th:text="${@settings.orgName()}"></div><div class="small" th:text="${r.office.name}"></div></div>
+        <div class="text-end"><div class="fw-bold fs-4" th:text="${r.queueNumber != null} ? ${'#' + r.queueNumber} : ''"></div>
+            <div class="small fw-bold" th:text="#{badge.visitor}">Visitor</div></div>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <img th:src="${qrImage}" alt="QR" style="width:30mm;height:30mm">
+        <div>
+            <div class="badge-name" th:text="${r.visitor.shortName}"></div>
+            <div class="small" th:if="${r.visitor.nameLatin}" dir="ltr" th:text="${r.visitor.nameLatin}"></div>
+            <div class="small" th:text="${r.visitor.organization}"></div>
+            <div class="small"><b th:text="#{req.meetingWith}"></b>: <span th:text="${r.meetingWith ?: r.office.hostTitle}"></span></div>
+            <div class="small"><b th:text="#{req.date}"></b>: <span class="ltr" th:text="${@dates.dt(r.scheduledStart != null ? r.scheduledStart : r.checkInAt)}"></span></div>
+            <div class="small ltr" th:text="${r.referenceNumber}"></div>
+            <div class="small" th:if="${!#lists.isEmpty(r.members)}" th:text="#{badge.plusMembers(${#lists.size(r.members)})}"></div>
+        </div>
+    </div>
+    <div class="small text-muted mt-1" th:text="#{badge.returnNote}"></div>
+</div>
+</body>
+</html>

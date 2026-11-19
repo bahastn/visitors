@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{public/layout :: page(~{::title}, ~{::section})}">
+<head><title th:text="#{public.trackTitle}">Track</title></head>
+<body>
+<section>
+    <div class="page-head"><div><h1 th:text="#{public.trackTitle}"></h1><div class="sub" th:text="#{public.trackIntro}"></div></div></div>
+    <form method="get" class="panel">
+        <div class="panel-body row g-2 align-items-end">
+            <div class="col-md-5"><label class="form-label" for="tr" th:text="#{req.ref}"></label>
+                <input id="tr" name="ref" class="form-control" dir="ltr" required th:value="${ref}" placeholder="VR-2026-000123"></div>
+            <div class="col-md-5"><label class="form-label" for="tp" th:text="#{visitor.phone}"></label>
+                <input id="tp" name="phone" class="form-control" dir="ltr" required th:value="${phone}" inputmode="tel"></div>
+            <div class="col-md-2"><button class="btn btn-primary w-100"><i class="bi bi-search"></i> <span th:text="#{common.search}"></span></button></div>
+        </div>
+    </form>
+    <div th:if="${notFound}" class="alert alert-warning" th:text="#{public.notFound}"></div>
+    <div th:if="${r}" class="panel">
+        <div class="panel-body">
+            <div class="d-flex justify-content-between flex-wrap gap-2 align-items-start">
+                <div><div class="small-muted ltr" th:text="${r.referenceNumber}"></div>
+                    <h2 class="h5 mb-1" th:text="${r.subject}"></h2>
+                    <span th:replace="~{fragments :: office(${r.office})}"></span></div>
+                <span th:replace="~{fragments :: status(${r.status})}"></span>
+            </div>
+            <div class="stepper my-4" th:with="stage=${r.status.stage}">
+                <div th:each="k, it : ${ {'step.requested','step.review','step.approved','step.scheduled','step.arrived','step.meeting','step.completed'} }"
+                     class="step" th:classappend="${it.index < stage or r.status.name() == 'COMPLETED'} ? done : (${it.index == stage} ? (${r.status.stopped} ? stop : now) : '')"
+                     th:text="${it.index == stage and r.status.stopped} ? ${@labels.t(r.status)} : #{${k}}"></div>
+            </div>
+            <div th:if="${r.scheduledStart != null and (r.status.name() == 'SCHEDULED' or r.status.name() == 'CHECKED_IN')}" class="action-card">
+                <i class="bi bi-calendar-check"></i>
+                <div><div class="small-muted" th:text="#{public.yourAppointment}"></div>
+                    <b th:text="${@dates.full(r.scheduledStart)}"></b> · <b class="ltr" th:text="${@dates.time(r.scheduledStart)}"></b>
+                    <div class="small" th:if="${r.location}"><i class="bi bi-geo-alt"></i> <span th:text="${r.location}"></span></div></div>
+            </div>
+            <div th:if="${r.status.name() == 'POSTPONED' and r.postponedUntil != null}" class="alert alert-warning mt-2">
+                <span th:text="#{req.postponeUntil}"></span>: <b th:text="${@dates.date(r.postponedUntil)}"></b></div>
+            <div th:if="${r.status.name() == 'REFERRED' and r.referredTo != null}" class="alert alert-info mt-2">
+                <span th:text="#{req.referTo}"></span>: <b th:text="${r.referredTo.name}"></b></div>
+            <div th:if="${r.constituentCase}" class="small mt-2"><span th:text="#{req.case}"></span>: <b class="ltr" th:text="${r.constituentCase.caseNumber}"></b>
+                — <span th:text="${@labels.t(r.constituentCase.status)}"></span></div>
+            <div class="d-flex gap-2 my-3" th:if="${passLink != null or feedbackLink != null}">
+                <a th:if="${passLink}" th:href="${passLink}" class="btn btn-primary"><i class="bi bi-qr-code"></i> <span th:text="#{req.pass}"></span></a>
+                <a th:if="${feedbackLink}" th:href="${feedbackLink}" class="btn btn-accent"><i class="bi bi-star"></i> <span th:text="#{req.feedback}"></span></a>
+            </div>
+            <h3 class="h6 mt-4" th:text="#{public.progress}"></h3>
+            <ul class="timeline">
+                <li th:each="a : ${events}" class="timeline-item">
+                    <span class="timeline-dot" th:classappend="${a.toStatus != null} ? ${'d-' + a.toStatus.name()} : ''"></span>
+                    <div class="timeline-title" th:text="${a.toStatus != null} ? ${@labels.t(a.toStatus)} : (${#messages.msgOrNull('audit.' + a.action) ?: a.action})"></div>
+                    <div class="timeline-meta ltr" th:text="${@dates.dt(a.timestamp)}"></div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+</body>
+</html>

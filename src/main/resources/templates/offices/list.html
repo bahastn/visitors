@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.offices}">Offices</title></head>
+<body>
+<section>
+    <div class="page-head">
+        <div><h1 th:text="#{nav.offices}"></h1><div class="sub" th:text="#{office.help}"></div></div>
+        <div class="actions" th:if="${isAdmin}"><a th:href="@{/offices/new}" class="btn btn-accent"><i class="bi bi-plus-lg"></i> <span th:text="#{office.add}"></span></a></div>
+    </div>
+    <div class="panel">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th th:text="#{office.office}"></th><th th:text="#{office.type}"></th><th th:text="#{office.host}"></th>
+                    <th th:text="#{office.hours}"></th><th th:text="#{office.approval}"></th><th th:text="#{dash.pending}"></th><th th:text="#{office.staff}"></th><th th:text="#{req.status}"></th></tr></thead>
+                <tbody>
+                <tr th:each="o : ${offices}" th:data-href="@{/offices/{id}(id=${o.id})}" th:style="${!o.active} ? 'opacity:.55' : ''">
+                    <td><div class="d-flex align-items-center gap-2"><span class="color-swatch" th:style="'background:' + ${o.color}"></span>
+                        <div><div class="row-title" th:text="${o.name}"></div><div class="row-sub ltr" th:text="${o.code}"></div></div></div></td>
+                    <td class="small" th:text="${@labels.t(o.type)}"></td>
+                    <td class="small"><span th:text="${o.external} ? '—' : ${o.hostTitle}"></span><div class="row-sub" th:text="${o.hostName}"></div></td>
+                    <td class="small ltr" th:text="${o.external} ? '—' : ${o.workStart + '–' + o.workEnd}"></td>
+                    <td class="small" th:text="${o.external} ? '—' : (${o.twoLevelApproval} ? #{office.twoLevels} : #{office.oneLevel})"></td>
+                    <td class="num" th:text="${pending[o.id]}"></td>
+                    <td class="num" th:text="${staffCount[o.id]}"></td>
+                    <td><span th:if="${o.external}" class="tag" th:text="#{office.externalTag}"></span>
+                        <span class="tag" th:classappend="${o.active} ? info : ''" th:text="${o.active} ? #{common.active} : #{common.inactive}"></span></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+</body>
+</html>

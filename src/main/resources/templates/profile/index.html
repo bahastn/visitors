@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.profile}">Profile</title></head>
+<body>
+<section>
+    <div class="page-head"><div><h1 th:text="#{nav.profile}"></h1><div class="sub"><span th:text="${@labels.t(u.role)}"></span> · <span class="ltr" th:text="${u.username}"></span></div></div></div>
+    <div class="row g-3" style="max-width:1100px">
+        <div class="col-lg-6">
+            <form th:action="@{/profile}" method="post" class="panel">
+                <div class="panel-head"><h2 th:text="#{profile.details}"></h2></div>
+                <div class="panel-body">
+                    <div class="mb-3"><label class="form-label" for="fn" th:text="#{user.fullName}"></label><input id="fn" name="fullName" class="form-control" th:value="${u.fullName}" required></div>
+                    <div class="mb-3"><label class="form-label" for="em" th:text="#{visitor.email}"></label><input id="em" type="email" name="email" class="form-control" dir="ltr" th:value="${u.email}"></div>
+                    <div class="mb-3"><label class="form-label" for="ph" th:text="#{visitor.phone}"></label><input id="ph" name="phone" class="form-control" dir="ltr" th:value="${u.phone}"></div>
+                    <div class="mb-1"><label class="form-label" for="pl" th:text="#{visitor.language}"></label>
+                        <select id="pl" name="preferredLanguage" class="form-select">
+                            <option value="ckb" th:selected="${u.preferredLanguage == 'ckb'}">کوردی</option>
+                            <option value="ar" th:selected="${u.preferredLanguage == 'ar'}">العربية</option>
+                            <option value="en" th:selected="${u.preferredLanguage == 'en'}">English</option></select>
+                        <div class="form-text" th:text="#{profile.languageHint}"></div></div>
+                </div>
+                <div class="panel-foot"><button class="btn btn-primary" th:text="#{common.save}"></button></div>
+            </form>
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{user.offices}"></h2></div>
+                <ul class="list">
+                    <li th:if="${u.allOffices}"><span class="tag info" th:text="#{scope.allOffices}"></span></li>
+                    <li th:if="${u.office}"><span th:replace="~{fragments :: office(${u.office})}"></span><span class="small-muted" th:text="#{user.mainOffice}"></span></li>
+                    <li th:each="x : ${u.extraOffices}"><span th:replace="~{fragments :: office(${x})}"></span></li>
+                </ul>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <form th:action="@{/profile/password}" method="post" class="panel">
+                <div class="panel-head"><h2 th:text="#{profile.changePassword}"></h2></div>
+                <div class="panel-body">
+                    <div class="mb-3"><label class="form-label" for="cur" th:text="#{profile.currentPassword}"></label><input id="cur" type="password" name="current" class="form-control" required autocomplete="current-password"></div>
+                    <div class="mb-3"><label class="form-label" for="np" th:text="#{user.newPassword}"></label><input id="np" type="password" name="password" class="form-control" required minlength="8" autocomplete="new-password"></div>
+                    <div class="mb-1"><label class="form-label" for="cp" th:text="#{profile.confirmPassword}"></label><input id="cp" type="password" name="confirm" class="form-control" required minlength="8" autocomplete="new-password"></div>
+                </div>
+                <div class="panel-foot"><button class="btn btn-primary" th:text="#{profile.changePassword}"></button></div>
+            </form>
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{profile.twoFactor}"></h2>
+                    <span class="tag" th:classappend="${u.totpEnabled} ? info : ''" th:text="${u.totpEnabled} ? #{common.on} : #{common.off}"></span></div>
+                <div class="panel-body" th:if="${u.totpEnabled}">
+                    <p th:text="#{profile.twoFactorOn}"></p>
+                    <form th:action="@{/profile/2fa/disable}" method="post" class="d-flex gap-2">
+                        <input name="code" class="form-control" inputmode="numeric" required th:placeholder="#{login.code}" dir="ltr" th:attr="aria-label=#{login.code}">
+                        <button class="btn btn-outline-danger text-nowrap" th:text="#{profile.disable2fa}"></button></form>
+                </div>
+                <div class="panel-body" th:unless="${u.totpEnabled}">
+                    <p class="small-muted" th:text="#{profile.twoFactorOff}"></p>
+                    <a th:href="@{/profile/2fa}" class="btn btn-primary" th:text="#{profile.enable2fa}"></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

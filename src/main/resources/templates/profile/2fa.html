@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{profile.twoFactor}">2FA</title></head>
+<body>
+<section>
+    <div th:if="${required}" class="alert alert-warning" style="max-width:560px;margin:0 auto 1rem"><i class="bi bi-shield-exclamation"></i> <span th:text="#{profile.2faRequired}"></span></div>
+    <div class="panel mx-auto" style="max-width:560px">
+        <div class="panel-head"><h2 th:text="#{profile.enable2fa}"></h2></div>
+        <div class="panel-body">
+            <ol class="small mb-3">
+                <li th:text="#{profile.2faStep1}"></li>
+                <li th:text="#{profile.2faStep2}"></li>
+                <li th:text="#{profile.2faStep3}"></li>
+            </ol>
+            <div class="text-center"><img th:src="${qrImage}" alt="QR" style="width:220px">
+                <div class="small-muted mt-2"><span th:text="#{profile.2faManual}"></span>: <code class="ltr" th:text="${secret}"></code></div></div>
+            <form th:action="@{/profile/2fa/enable}" method="post" class="d-flex gap-2 mt-3">
+                <input name="code" class="form-control form-control-lg text-center" inputmode="numeric" maxlength="7" required autofocus dir="ltr" placeholder="123456" th:attr="aria-label=#{login.code}">
+                <button class="btn btn-primary" th:text="#{profile.verify}"></button>
+            </form>
+        </div>
+    </div>
+</section>
+</body>
+</html>

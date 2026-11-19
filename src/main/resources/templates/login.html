@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${lang}" th:dir="${rtl} ? 'rtl' : 'ltr'" th:attr="data-theme=${@settings.theme()}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#714B67">
+    <title th:text="#{login.title}">Sign in</title>
+    <link rel="icon" th:href="@{/img/logo-64.png}" type="image/png">
+    <link rel="apple-touch-icon" th:href="@{/img/logo-192.png}">
+    <link rel="stylesheet" th:href="${rtl} ? @{/vendor/bootstrap/bootstrap.rtl.min.css} : @{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap-icons/bootstrap-icons.min.css}">
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        /* Standalone sign-in page: brand header bar + white card on the canvas (PLAN-v3 2 / 6.9). */
+        .o-auth { min-block-size: 100vh; display: flex; flex-direction: column; background: var(--canvas, #F5F5F7); }
+        .o-auth-bar { block-size: 48px; display: flex; align-items: center; gap: 8px; padding-inline: 16px;
+            background: var(--brand, #714B67); color: #fff; }
+        .o-auth-bar img { inline-size: 36px; block-size: 36px; border-radius: 6px; background: #fff; padding: 2px; object-fit: contain; }
+        .o-auth-bar .o-auth-org { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .o-auth-bar .o-auth-lang { margin-inline-start: auto; display: flex; gap: 4px; }
+        .o-auth-bar .o-auth-lang a { color: #fff; text-decoration: none; font-size: 12px; font-weight: 600;
+            padding: 4px 8px; border-radius: 4px; opacity: .8; }
+        .o-auth-bar .o-auth-lang a:hover, .o-auth-bar .o-auth-lang a.active { opacity: 1; background: rgba(255,255,255,.18); }
+        .o-auth-main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+        .o-auth-card { inline-size: 100%; max-inline-size: 380px; background: var(--surface, #fff);
+            border: 1px solid var(--border, #E2E4E8); border-radius: 6px; padding: 24px; }
+        .o-auth-card h1 { font-size: 18px; font-weight: 600; margin-block-end: 16px; color: var(--text, #1F2328); }
+        .o-auth-card .form-label { font-size: 12px; font-weight: 500; color: var(--muted, #6B7280); margin-block-end: 4px; }
+        .o-auth-foot { text-align: center; font-size: 12px; padding-block: 16px; color: var(--muted, #6B7280); }
+        .o-auth-foot a { color: var(--brand, #714B67); }
+    </style>
+</head>
+<body>
+<div class="o-auth">
+    <header class="o-auth-bar">
+        <img class="o-logo" th:src="@{/img/logo-64.png}" th:alt="${@settings.orgName()}" width="40" height="40">
+        <span class="o-auth-org" th:text="${@settings.orgName()}"></span>
+        <nav class="o-auth-lang" th:attr="aria-label=#{nav.language}">
+            <a th:href="@{/login(lang='ckb')}" th:classappend="${lang == 'ckb'} ? active" lang="ckb" title="کوردی">KU</a>
+            <a th:href="@{/login(lang='ar')}" th:classappend="${lang == 'ar'} ? active" lang="ar" title="العربية">AR</a>
+            <a th:href="@{/login(lang='en')}" th:classappend="${lang == 'en'} ? active" lang="en" title="English">EN</a>
+        </nav>
+    </header>
+    <main class="o-auth-main">
+        <div class="o-auth-card">
+            <h1 th:text="#{login.title}">Sign in</h1>
+            <div th:if="${param.error}" class="alert alert-danger py-2 small" role="alert"
+                 th:text="${param.error[0] == '2fa'} ? #{login.need2fa} : (${param.error[0] == '2fa_invalid'} ? #{login.bad2fa} : (${param.error[0] == 'disabled'} ? #{login.disabled} : #{login.bad}))"></div>
+            <div th:if="${param.logout}" class="alert alert-success py-2 small" role="status" th:text="#{login.loggedOut}"></div>
+            <form th:action="@{/login}" method="post" autocomplete="off">
+                <div class="mb-3">
+                    <label class="form-label" for="username" th:text="#{login.username}"></label>
+                    <input type="text" id="username" name="username" class="form-control" required autofocus th:value="${param.u}" dir="ltr" autocapitalize="none">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="password" th:text="#{login.password}"></label>
+                    <input type="password" id="password" name="password" class="form-control" required dir="ltr">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label" for="code" th:text="#{login.code}"></label>
+                    <input type="text" id="code" name="code" class="form-control" inputmode="numeric" pattern="[0-9 ]*" maxlength="7"
+                           dir="ltr" placeholder="123456" autocomplete="one-time-code" th:title="#{login.codeHint}"
+                           th:autofocus="${param.error != null and param.error[0] == '2fa'}">
+                </div>
+                <button type="submit" class="btn btn-primary w-100" th:text="#{login.submit}">Sign in</button>
+            </form>
+        </div>
+    </main>
+    <footer class="o-auth-foot">
+        <a th:href="@{/public/request}" th:text="#{nav.publicForm}"></a>
+        <span class="mx-2" aria-hidden="true">·</span>
+        <a th:href="@{/public/track}" th:text="#{public.trackTitle}"></a>
+    </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.notifications}">Notifications</title></head>
+<body>
+<section>
+    <div class="page-head">
+        <div><h1 th:text="#{nav.notifications}"></h1></div>
+        <form th:action="@{/notifications/read-all}" method="post"><button class="btn btn-light" th:text="#{notif.markAllRead}"></button></form>
+    </div>
+    <div class="panel" style="max-width:900px">
+        <a th:each="n : ${page.content}" th:href="@{/notifications/{id}(id=${n.id})}" class="notif-item" th:classappend="${!n.readFlag} ? unread">
+            <div class="d-flex justify-content-between gap-3"><strong th:text="${n.subject}"></strong><small class="small-muted ltr text-nowrap" th:text="${@dates.dt(n.createdAt)}"></small></div>
+            <div class="small" style="white-space:pre-line" th:text="${n.body}"></div>
+        </a>
+        <div th:if="${page.empty}" class="panel-empty"><i class="bi bi-bell"></i><span th:text="#{notif.empty}"></span></div>
+    </div>
+    <nav th:replace="~{fragments :: pager(${page}, '/notifications')}"></nav>
+</section>
+</body>
+</html>

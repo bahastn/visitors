@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="${c.caseNumber}">Case</title></head>
+<body>
+<section>
+    <div class="crumb"><a th:href="@{/cases}" th:text="#{nav.cases}"></a> / <span class="ltr" th:text="${c.caseNumber}"></span></div>
+    <div class="page-head"><div><h1 th:text="${c.title}"></h1>
+        <div class="sub"><span class="tag info" th:text="${@labels.t(c.status)}"></span> <th:block th:if="${c.office}"><span th:replace="~{fragments :: office(${c.office})}"></span></th:block></div></div></div>
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <form th:action="@{/cases/{id}(id=${c.id})}" method="post" class="panel">
+                <div class="form-section">
+                    <div class="row g-3">
+                        <div class="col-12"><label class="form-label" for="ct" th:text="#{case.title}"></label><input id="ct" name="title" class="form-control" th:value="${c.title}" required></div>
+                        <div class="col-12"><label class="form-label" for="cd" th:text="#{req.description}"></label><textarea id="cd" name="description" class="form-control" rows="3" th:text="${c.description}"></textarea></div>
+                        <div class="col-md-4"><label class="form-label" for="cs" th:text="#{req.status}"></label>
+                            <select id="cs" name="status" class="form-select"><option th:each="e : ${@labels.values('CaseStatus')}" th:value="${e}" th:text="${@labels.t(e)}" th:selected="${c.status == e}"></option></select></div>
+                        <div class="col-md-4"><label class="form-label" for="ca" th:text="#{case.assigned}"></label>
+                            <select id="ca" name="assignedToId" class="form-select"><option value="" th:text="#{req.nobody}"></option>
+                                <option th:each="u : ${staff}" th:value="${u.id}" th:text="${u.fullName}" th:selected="${c.assignedTo != null and c.assignedTo.id == u.id}"></option></select></div>
+                        <div class="col-md-4"><label class="form-label" for="cm" th:text="#{case.ministry}"></label><input id="cm" name="relatedMinistry" class="form-control" th:value="${c.relatedMinistry}"></div>
+                        <div class="col-12 mb-3"><label class="form-label" for="cr" th:text="#{case.resolution}"></label><textarea id="cr" name="resolution" class="form-control" rows="2" th:text="${c.resolution}"></textarea></div>
+                    </div>
+                </div>
+                <div class="form-actions"><button class="btn btn-primary" th:text="#{common.save}"></button></div>
+            </form>
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{case.visits}"></h2></div>
+                <ul class="list" th:if="${!#lists.isEmpty(c.visits)}">
+                    <li th:each="r : ${c.visits}">
+                        <div class="grow"><a class="row-title" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.subject}"></a>
+                            <div class="row-sub"><span class="ltr" th:text="${r.referenceNumber}"></span> · <span class="ltr" th:text="${@dates.date(r.createdAt)}"></span></div>
+                            <div class="row-sub" th:if="${r.outcomeSummary}" th:text="${r.outcomeSummary}"></div></div>
+                        <span th:replace="~{fragments :: status(${r.status})}"></span>
+                    </li>
+                </ul>
+                <div th:if="${#lists.isEmpty(c.visits)}" class="panel-empty" th:text="#{common.none}"></div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="panel" th:if="${c.visitor}">
+                <div class="panel-body"><div class="person"><span class="person-photo"><i class="bi bi-person"></i></span>
+                    <div><a class="row-title" th:href="@{/visitors/{id}(id=${c.visitor.id})}" th:text="${c.visitor.fullName}"></a><div class="row-sub ltr" th:text="${c.visitor.phone}"></div></div></div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{req.followUps}"></h2></div>
+                <ul class="list" th:if="${!#lists.isEmpty(tasks)}">
+                    <li th:each="t : ${tasks}"><div class="grow"><div class="row-title" th:text="${t.title}"></div><div class="row-sub"><span th:text="${t.owner?.fullName}"></span> · <span class="ltr" th:text="${@dates.date(t.dueDate)}"></span></div></div>
+                        <span class="tag" th:text="${@labels.t(t.status)}"></span></li>
+                </ul>
+                <div class="panel-foot">
+                    <form th:action="@{/cases/{id}/tasks(id=${c.id})}" method="post" class="row g-2">
+                        <div class="col-12"><input name="title" class="form-control form-control-sm" required th:placeholder="#{task.titleHint}" th:attr="aria-label=#{task.title}"></div>
+                        <div class="col-6"><select name="ownerId" class="form-select form-select-sm" th:attr="aria-label=#{task.owner}"><option value="" th:text="#{task.owner}"></option>
+                            <option th:each="u : ${staff}" th:value="${u.id}" th:text="${u.fullName}"></option></select></div>
+                        <div class="col-4"><input type="date" name="dueDate" class="form-control form-control-sm" th:attr="aria-label=#{task.due}"></div>
+                        <div class="col-2"><button class="btn btn-primary btn-sm w-100" th:attr="aria-label=#{common.add}"><i class="bi bi-plus-lg"></i></button></div>
+                    </form>
+                </div>
+            </div>
+            <div class="panel"><div class="panel-head"><h2 th:text="#{tab.history}"></h2></div>
+                <div class="panel-body"><ul th:replace="~{fragments :: trail(${trail})}"></ul></div></div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

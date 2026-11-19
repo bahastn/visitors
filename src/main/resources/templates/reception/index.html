@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.reception}">Reception</title></head>
+<body>
+<section>
+    <div class="page-head">
+        <div><h1 th:text="#{nav.reception}"></h1><div class="sub" th:text="#{rec.sub(${#lists.size(expected)}, ${#lists.size(inside)})}"></div></div>
+        <div class="actions">
+            <a th:href="@{/queue}" class="btn btn-light"><i class="bi bi-people"></i> <span th:text="#{nav.queue}"></span></a>
+            <a sec:authorize="hasAnyRole('ADMIN','DIRECTOR','SECRETARY','RECEPTION')" th:href="@{/visitors/new(next='request')}" class="btn btn-accent"><i class="bi bi-person-plus"></i> <span th:text="#{rec.walkIn}"></span></a>
+        </div>
+    </div>
+    <div id="sync-status" class="alert alert-info d-none"></div>
+
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{rec.scan}"></h2></div>
+                <div class="panel-body">
+                    <form th:action="@{/reception/scan}" method="post" id="scanForm">
+                        <div class="input-group input-group-lg">
+                            <input name="code" id="scanCode" class="form-control" dir="ltr" required th:placeholder="#{rec.codeHint}" autofocus th:attr="aria-label=#{rec.codeHint}">
+                            <button class="btn btn-primary" th:attr="aria-label=#{common.search}"><i class="bi bi-arrow-return-left"></i></button>
+                        </div>
+                        <div class="form-text" th:text="#{rec.scannerHint}"></div>
+                    </form>
+                    <div id="qr-reader" class="mt-3"></div>
+                    <button type="button" id="startScan" class="btn btn-light w-100 mt-2"><i class="bi bi-camera"></i> <span th:text="#{rec.startCamera}"></span></button>
+                </div>
+            </div>
+            <div class="panel" th:if="${!#lists.isEmpty(approvedWalkIns)}">
+                <div class="panel-head"><h2 th:text="#{rec.approvedWalkIns}"></h2></div>
+                <ul class="list">
+                    <li th:each="r : ${approvedWalkIns}">
+                        <div class="grow"><a class="row-title" th:href="@{/reception/visit/{id}(id=${r.id})}" th:text="${r.visitor.shortName}"></a>
+                            <div class="row-sub" th:text="${r.office.name}"></div></div>
+                        <form th:action="@{/requests/{id}/checkin(id=${r.id})}" method="post"><input type="hidden" name="back" value="/reception">
+                            <button class="btn btn-accent btn-sm" th:text="#{action.checkIn}"></button></form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="panel">
+                <div class="panel-head"><h2><span th:text="#{rec.expectedToday}"></span> <span class="small-muted fw-normal" th:text="${#lists.size(expected)}"></span></h2>
+                    <input id="filter" class="form-control form-control-sm" style="max-width:220px" th:placeholder="#{common.search}" th:attr="aria-label=#{common.search}"></div>
+                <div class="table-responsive">
+                    <table class="table table-hover" id="expectedTable">
+                        <tbody>
+                        <tr th:each="r : ${expected}" th:classappend="${r.watchlistFlag} ? tr-alert">
+                            <td class="fw-bold ltr" style="width:1%" th:text="${@dates.time(r.scheduledStart)}"></td>
+                            <td><a class="row-title" th:href="@{/reception/visit/{id}(id=${r.id})}" th:text="${r.visitor.fullName}"></a>
+                                <div class="row-sub"><span class="ltr" th:text="${r.visitor.phone}"></span><span th:if="${r.visitor.organization}" th:text="${' · ' + r.visitor.organization}"></span></div></td>
+                            <td><span th:replace="~{fragments :: office(${r.office})}"></span></td>
+                            <td><span th:replace="~{fragments :: flags(${r})}"></span></td>
+                            <td class="text-nowrap text-end">
+                                <form th:action="@{/requests/{id}/checkin(id=${r.id})}" method="post" class="d-inline checkin-form" th:data-id="${r.id}">
+                                    <input type="hidden" name="back" value="/reception">
+                                    <button class="btn btn-accent btn-sm"><i class="bi bi-box-arrow-in-right"></i> <span th:text="#{action.checkIn}"></span></button></form>
+                                <a th:href="@{/requests/{id}/badge(id=${r.id})}" target="_blank" class="btn btn-light btn-sm" th:attr="aria-label=#{req.printBadge}"><i class="bi bi-printer"></i></a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${#lists.isEmpty(expected)}" class="panel-empty"><i class="bi bi-calendar-check"></i><span th:text="#{rec.noneExpected}"></span></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head"><h2><span th:text="#{rec.inside}"></span> <span class="small-muted fw-normal" th:text="${#lists.size(inside)}"></span></h2></div>
+                <ul class="list" th:if="${!#lists.isEmpty(inside)}">
+                    <li th:each="r : ${inside}">
+                        <span class="queue-number" style="font-size:1.5rem" th:text="${r.queueNumber}"></span>
+                        <div class="grow"><a class="row-title" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.visitor.fullName}"></a>
+                            <div class="row-sub"><span th:text="${r.office.name}"></span> · <span class="ltr" th:text="${@dates.time(r.checkInAt)}"></span> · <span th:text="${@dates.minutes(r.lobbyWaitMinutes)}"></span></div></div>
+                        <span th:replace="~{fragments :: status(${r.status})}"></span>
+                        <form th:if="${r.status.name() == 'CHECKED_IN'}" th:action="@{/requests/{id}/call(id=${r.id})}" method="post"><input type="hidden" name="back" value="/reception">
+                            <button class="btn btn-accent btn-sm" th:text="#{action.callIn}"></button></form>
+                        <form th:action="@{/requests/{id}/complete(id=${r.id})}" method="post"><input type="hidden" name="back" value="/reception">
+                            <button class="btn btn-light btn-sm" th:text="#{action.checkOut}"></button></form>
+                    </li>
+                </ul>
+                <div th:if="${#lists.isEmpty(inside)}" class="panel-empty" th:text="#{dash.lobbyEmpty}"></div>
+            </div>
+
+            <div class="panel" th:if="${!#lists.isEmpty(done)}">
+                <div class="panel-head"><h2 th:text="#{rec.done}"></h2></div>
+                <ul class="list">
+                    <li th:each="r : ${done}"><div class="grow"><a th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.visitor.shortName}"></a></div>
+                        <span class="small-muted ltr" th:text="${@dates.time(r.checkOutAt)}"></span><span th:replace="~{fragments :: status(${r.status})}"></span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/vendor/html5-qrcode/html5-qrcode.min.js}"></script>
+    <script th:src="@{/js/reception.js}"></script>
+    <script th:inline="javascript">
+        window.RECEPTION_MSG = {
+            offlineSaved: /*[[#{rec.offlineSaved}]]*/ 'Saved offline',
+            synced: /*[[#{rec.synced}]]*/ 'Synced',
+            pending: /*[[#{rec.pendingSync}]]*/ 'Waiting to sync',
+            notFound: /*[[#{error.passNotFound}]]*/ 'Not found',
+            flagged: /*[[#{watch.flagged}]]*/ 'Watchlist'
+        };
+    </script>
+</section>
+</body>
+</html>

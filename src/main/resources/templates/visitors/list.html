@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.visitors}">Visitors</title></head>
+<body>
+<section>
+    <div class="page-head">
+        <div><h1 th:text="#{nav.visitors}"></h1><div class="sub" th:text="#{visitor.listSub(${page.totalElements})}"></div></div>
+        <div class="actions"><a sec:authorize="hasAnyRole('ADMIN','DIRECTOR','SECRETARY','RECEPTION','HEAD')" th:href="@{/visitors/new}" class="btn btn-accent"><i class="bi bi-person-plus"></i> <span th:text="#{visitor.new}"></span></a></div>
+    </div>
+    <div class="panel">
+        <form class="filter-bar" method="get">
+            <input class="form-control grow" name="q" th:value="${q}" th:placeholder="#{visitor.searchHint}" th:attr="aria-label=#{common.search}">
+            <button class="btn btn-primary"><i class="bi bi-search"></i> <span th:text="#{common.search}"></span></button>
+        </form>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th th:text="#{visitor.name}"></th><th th:text="#{visitor.phone}"></th><th th:text="#{visitor.organization}"></th><th th:text="#{visitor.governorate}"></th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="v : ${page.content}" th:data-href="@{/visitors/{id}(id=${v.id})}">
+                    <td><div class="person">
+                        <img th:if="${v.photoPath}" th:src="@{/visitors/{id}/photo(id=${v.id})}" class="person-photo" style="width:36px;height:36px" alt="">
+                        <span th:unless="${v.photoPath}" class="avatar" style="background:var(--canvas);color:var(--navy)" th:text="${#strings.substring(v.firstName, 0, 1)}"></span>
+                        <div><span class="row-title" th:text="${v.fullName}"></span> <span th:if="${v.vip}" class="tag danger" th:text="#{common.vip}"></span>
+                            <div class="row-sub" th:text="${v.jobTitle}"></div></div></div></td>
+                    <td class="ltr small" th:text="${v.phone}"></td>
+                    <td class="small" th:text="${v.organization}"></td>
+                    <td class="small" th:text="${@labels.t(v.governorate)}"></td>
+                    <td class="text-end"><a sec:authorize="hasAnyRole('ADMIN','DIRECTOR','SECRETARY','RECEPTION','HEAD')" th:href="@{/requests/new(visitorId=${v.id})}" class="btn btn-light btn-sm"><i class="bi bi-plus-lg"></i> <span th:text="#{visitor.newVisit}"></span></a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${page.empty}" class="panel-empty"><i class="bi bi-person-vcard"></i><span th:text="#{common.noResults}"></span></div>
+    </div>
+    <nav th:replace="~{fragments :: pager(${page}, ${'/visitors?' + queryNoPage})}"></nav>
+</section>
+</body>
+</html>

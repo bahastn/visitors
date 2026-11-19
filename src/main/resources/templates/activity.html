@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.activity}">Activity</title></head>
+<body>
+<section>
+    <div class="page-head"><div><h1 th:text="#{nav.activity}"></h1><div class="sub" th:text="#{activity.sub}"></div></div></div>
+    <div class="panel">
+        <div class="table-responsive">
+            <table class="table">
+                <thead><tr><th th:text="#{common.time}"></th><th th:text="#{common.user}"></th><th th:text="#{common.action}"></th><th th:text="#{common.object}"></th><th th:text="#{common.details}"></th><th th:text="#{activity.ip}"></th></tr></thead>
+                <tbody>
+                <tr th:each="a : ${page.content}">
+                    <td class="small text-nowrap ltr" th:text="${@dates.dt(a.timestamp)}"></td>
+                    <td class="small" th:text="${a.actorName}"></td>
+                    <td class="small"><span th:text="${#messages.msgOrNull('audit.' + a.action) ?: a.action}"></span>
+                        <th:block th:if="${a.toStatus != null}"><span th:replace="~{fragments :: status(${a.toStatus})}"></span></th:block></td>
+                    <td class="small">
+                        <a th:if="${a.entityType == 'VisitRequest'}" th:href="@{/requests/{id}(id=${a.entityId})}" th:text="#{activity.request(${a.entityId})}"></a>
+                        <a th:if="${a.entityType == 'Visitor'}" th:href="@{/visitors/{id}(id=${a.entityId})}" th:text="#{activity.visitor(${a.entityId})}"></a>
+                        <a th:if="${a.entityType == 'Case'}" th:href="@{/cases/{id}(id=${a.entityId})}" th:text="#{activity.case(${a.entityId})}"></a>
+                        <span th:if="${a.entityType == 'User'}" th:text="#{activity.user}"></span>
+                        <span th:if="${a.entityType == 'System'}" th:text="#{activity.system}"></span></td>
+                    <td class="small text-break" style="max-width:380px" th:text="${@labels.details(a.details)}"></td>
+                    <td class="small ltr" th:text="${a.ipAddress}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <nav th:replace="~{fragments :: pager(${page}, '/activity')}"></nav>
+</section>
+</body>
+</html>

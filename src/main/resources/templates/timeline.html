@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.timeline}">Timeline</title></head>
+<body>
+<section>
+    <div class="page-head">
+        <div><h1 th:text="#{nav.timeline}"></h1><div class="sub" th:text="${@dates.full(date)}"></div></div>
+        <form method="get" class="d-flex gap-2 align-items-center">
+            <a class="btn btn-light btn-sm" th:href="@{/timeline(date=${date.minusDays(1)})}" th:attr="aria-label=#{common.previous}"><i class="bi bi-chevron-left flip-rtl"></i></a>
+            <input type="date" name="date" class="form-control form-control-sm" th:value="${date}" onchange="this.form.submit()" th:attr="aria-label=#{req.date}">
+            <a class="btn btn-light btn-sm" th:href="@{/timeline(date=${date.plusDays(1)})}" th:attr="aria-label=#{common.next}"><i class="bi bi-chevron-right flip-rtl"></i></a>
+            <a class="btn btn-light btn-sm" th:href="@{/timeline}" th:text="#{cal.today}"></a>
+        </form>
+    </div>
+
+    <div class="figures mb-3">
+        <div class="figure"><div class="val num" th:text="${#lists.size(visits)}"></div><div class="lbl" th:text="#{tl.planned}"></div></div>
+        <div class="figure"><div class="val num" th:text="${completedCount}"></div><div class="lbl" th:text="#{enum.VisitStatus.COMPLETED}"></div></div>
+        <div class="figure" th:classappend="${lateCount > 0} ? alert-fig"><div class="val num" th:text="${lateCount}"></div><div class="lbl" th:text="#{tl.late}"></div></div>
+        <div class="figure" th:classappend="${overrunCount > 0} ? accent-fig"><div class="val num" th:text="${overrunCount}"></div><div class="lbl" th:text="#{tl.overruns}"></div></div>
+        <div class="figure"><div class="val num" th:text="${noShowCount}"></div><div class="lbl" th:text="#{enum.VisitStatus.NO_SHOW}"></div></div>
+        <div class="figure"><div class="val num"><span th:text="${actualMinutes}"></span><small th:text="${' / ' + plannedMinutes}"></small></div><div class="lbl" th:text="#{tl.minutesActualPlanned}"></div></div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-5">
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{tl.dayView}"></h2>
+                    <div class="legend"><span><i style="background:#e1f0f6;border-inline-start:3px solid #05668d"></i><span th:text="#{tl.planned}"></span></span>
+                        <span><i style="background:#fff0de;border-inline-start:3px solid #f77f00"></i><span th:text="#{tl.actual}"></span></span></div></div>
+                <div class="panel-body">
+                    <div class="dayline">
+                        <div class="dayline-hour" th:each="h : ${#numbers.sequence(7, 19)}"><span class="ltr" th:text="${(h < 10 ? '0' : '') + h + ':00'}"></span></div>
+                        <div th:each="b : ${blocks}" class="dayline-bar block"
+                             th:with="s=${b.startAt.toLocalDate().isBefore(date)} ? 0 : ${(b.startAt.hour - 7) * 60 + b.startAt.minute},
+                                      e=${b.endAt.toLocalDate().isAfter(date)} ? 780 : ${(b.endAt.hour - 7) * 60 + b.endAt.minute}"
+                             th:style="${'top:' + (s * 64 / 60) + 'px;height:' + ((e - s) * 64 / 60) + 'px'}" th:text="${b.title}"></div>
+                        <th:block th:each="r : ${visits}">
+                            <a th:if="${r.scheduledStart != null}" th:href="@{/requests/{id}(id=${r.id})}" class="dayline-bar planned"
+                               th:style="${'top:' + (((r.scheduledStart.hour - 7) * 60 + r.scheduledStart.minute) * 64 / 60) + 'px;height:' + (r.durationMinutes * 64 / 60) + 'px'}"
+                               th:title="${r.visitor.fullName + ' — ' + r.subject}" th:text="${@dates.time(r.scheduledStart) + ' ' + r.visitor.shortName}"></a>
+                            <a th:if="${r.meetingStartAt != null}" th:href="@{/requests/{id}(id=${r.id})}" class="dayline-bar actual"
+                               th:classappend="${r.lateMinutes != null and r.lateMinutes > 5} ? late"
+                               th:with="am=${(r.meetingStartAt.hour - 7) * 60 + r.meetingStartAt.minute},
+                                        dur=${r.actualMeetingMinutes != null ? r.actualMeetingMinutes : 15}"
+                               th:style="${'top:' + (am * 64 / 60) + 'px;height:' + ((dur < 10 ? 10 : dur) * 64 / 60) + 'px'}"
+                               th:text="${@dates.time(r.meetingStartAt) + ' ' + r.visitor.shortName}"></a>
+                        </th:block>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="panel">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead><tr><th th:text="#{req.visitor}"></th><th th:text="#{tl.planned}"></th><th th:text="#{req.checkIn}"></th>
+                            <th th:text="#{tl.actual}"></th><th th:text="#{tl.lateShort}"></th><th th:text="#{tl.overrun}"></th><th th:text="#{req.status}"></th></tr></thead>
+                        <tbody>
+                        <tr th:each="r : ${visits}" th:data-href="@{/requests/{id}(id=${r.id})}">
+                            <td><div class="row-title" th:text="${r.visitor.shortName}"></div><div class="row-sub truncate" style="max-width:220px" th:text="${r.subject}"></div></td>
+                            <td class="small text-nowrap ltr"><span th:text="${@dates.time(r.scheduledStart)}"></span>–<span th:text="${@dates.time(r.scheduledEnd)}"></span></td>
+                            <td class="small ltr" th:text="${@dates.time(r.checkInAt)}"></td>
+                            <td class="small text-nowrap ltr"><span th:text="${@dates.time(r.meetingStartAt)}"></span><span th:if="${r.meetingEndAt}" th:text="${'–' + @dates.time(r.meetingEndAt)}"></span></td>
+                            <td class="small" th:classappend="${r.lateMinutes != null and r.lateMinutes > 5} ? 'text-danger fw-bold'" th:text="${@dates.minutes(r.lateMinutes)}"></td>
+                            <td class="small" th:classappend="${r.overrunMinutes != null and r.overrunMinutes > 5} ? 'fw-bold'" th:text="${@dates.minutes(r.overrunMinutes)}"></td>
+                            <td><span th:replace="~{fragments :: status(${r.status})}"></span></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${#lists.isEmpty(visits)}" class="panel-empty"><i class="bi bi-calendar"></i><span th:text="#{dash.noAgenda}"></span></div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

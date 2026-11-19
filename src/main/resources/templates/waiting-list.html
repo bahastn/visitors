@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.waitingList}">Waiting list</title></head>
+<body>
+<section th:with="decider=${@currentUser.canDecide()}">
+    <div class="page-head">
+        <div><h1 th:text="#{nav.waitingList}"></h1><div class="sub" th:text="#{wait.sub(${'' + totalPending})}"></div></div>
+        <div class="actions"><a sec:authorize="hasAnyRole('ADMIN','DIRECTOR','SECRETARY','RECEPTION','HEAD')" th:href="@{/requests/new}" class="btn btn-accent"><i class="bi bi-plus-lg"></i> <span th:text="#{nav.newRequest}"></span></a></div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <div class="segmented">
+            <a th:href="@{/waiting-list(sort=${sort})}" th:classappend="${!overdueOnly and !recommendedOnly} ? active"><span th:text="#{common.all}"></span> <span class="num" th:text="${'' + totalPending}"></span></a>
+            <a th:href="@{/waiting-list(sort=${sort},overdueOnly=true)}" th:classappend="${overdueOnly} ? active"><span th:text="#{wait.overdue}"></span> <span class="num" th:text="${overdueTotal}"></span></a>
+            <a th:href="@{/waiting-list(sort=${sort},recommendedOnly=true)}" th:classappend="${recommendedOnly} ? active"><span th:text="#{wait.recommended}"></span> <span class="num" th:text="${recommendedTotal}"></span></a>
+        </div>
+        <form method="get" class="d-flex flex-wrap gap-2 ms-auto">
+            <input type="hidden" name="overdueOnly" th:value="${overdueOnly}"><input type="hidden" name="recommendedOnly" th:value="${recommendedOnly}">
+            <select name="priority" class="form-select form-select-sm w-auto o-select-filter" onchange="this.form.submit()" th:attr="aria-label=#{req.priority}"><option value="" th:text="#{filter.anyPriority}"></option>
+                <option th:each="e : ${@labels.values('Priority')}" th:value="${e}" th:text="${@labels.t(e)}" th:selected="${f_priority == e}"></option></select>
+            <select name="sort" class="form-select form-select-sm w-auto o-select-filter" onchange="this.form.submit()" th:attr="aria-label=#{wait.sort}">
+                <option value="priority" th:selected="${sort == 'priority'}" th:text="#{wait.sortPriority}"></option>
+                <option value="oldest" th:selected="${sort == 'oldest'}" th:text="#{wait.sortOldest}"></option>
+                <option value="newest" th:selected="${sort == 'newest'}" th:text="#{wait.sortNewest}"></option>
+                <option value="preferred" th:selected="${sort == 'preferred'}" th:text="#{wait.sortPreferred}"></option></select>
+        </form>
+    </div>
+
+    <form th:action="@{/requests/bulk}" method="post" class="panel">
+        <input type="hidden" name="back" value="/waiting-list">
+        <div class="filter-bar" th:if="${decider and !#lists.isEmpty(list)}">
+            <span class="small-muted" th:text="#{wait.bulk}"></span>
+            <button name="action" value="approve" class="btn btn-primary btn-sm"><i class="bi bi-check2-all"></i> <span th:text="#{wait.bulkApprove}"></span></button>
+            <input name="reason" class="form-control form-control-sm" style="max-width:260px" th:placeholder="#{req.rejectReason}" th:attr="aria-label=#{req.rejectReason}">
+            <button name="action" value="reject" class="btn btn-outline-danger btn-sm" th:data-confirm="#{common.areYouSure}"><span th:text="#{wait.bulkReject}"></span></button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead th:if="${!#lists.isEmpty(list)}"><tr>
+                    <th th:if="${decider}" style="width:1%"><input type="checkbox" class="form-check-input" data-check-all="ids" th:attr="aria-label=#{common.selectAll}"></th>
+                    <th th:text="#{req.visitorAndSubject}"></th><th th:if="${currentOffice == null}" th:text="#{office.office}"></th>
+                    <th th:text="#{req.status}"></th><th th:text="#{wait.waiting}"></th><th th:text="#{req.preferredDate}"></th><th th:text="#{req.managedBy}"></th>
+                </tr></thead>
+                <tbody>
+                <tr th:each="r : ${list}" th:data-href="@{/requests/{id}(id=${r.id})}" th:classappend="${r.isOverdue(r.office.overdueDays)} ? tr-alert">
+                    <td th:if="${decider}"><input type="checkbox" class="form-check-input" name="ids" th:value="${r.id}" th:attr="aria-label=${r.visitor.fullName}"></td>
+                    <td><div class="row-title" th:text="${r.visitor.fullName}"></div>
+                        <div class="row-sub truncate" style="max-width:420px" th:text="${r.subject}"></div>
+                        <div class="mt-1"><span th:replace="~{fragments :: flags(${r})}"></span></div></td>
+                    <td th:if="${currentOffice == null}"><span th:replace="~{fragments :: office(${r.office})}"></span></td>
+                    <td><span th:replace="~{fragments :: status(${r.status})}"></span></td>
+                    <td class="text-nowrap" th:classappend="${r.isOverdue(r.office.overdueDays)} ? 'fw-bold text-danger'" th:text="#{common.nDays(${'' + r.daysWaiting})}"></td>
+                    <td><span class="ltr text-nowrap" th:text="${@dates.date(r.preferredDate) + (r.preferredTime != null ? ' ' + r.preferredTime : '')}"></span></td>
+                    <td class="small" th:text="${r.managedBy?.fullName}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${#lists.isEmpty(list)}" class="panel-empty"><i class="bi bi-inbox"></i><span th:text="#{wait.empty}"></span></div>
+    </form>
+
+    <div class="panel" th:if="${!#lists.isEmpty(approved)}">
+        <div class="panel-head"><h2 th:text="#{dash.approvedUnscheduled}"></h2><a class="link" th:href="@{/calendar}" th:text="#{dash.openCalendar}"></a></div>
+        <ul class="list">
+            <li th:each="r : ${approved}">
+                <div class="grow"><a class="row-title" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.visitor.fullName}"></a><div class="row-sub truncate" th:text="${r.subject}"></div></div>
+                <th:block th:if="${currentOffice == null}"><span th:replace="~{fragments :: office(${r.office})}"></span></th:block>
+            </li>
+        </ul>
+    </div>
+</section>
+</body>
+</html>

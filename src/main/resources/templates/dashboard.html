@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.dashboard}">Dashboard</title></head>
+<body>
+<section data-refresh="120" th:with="decider=${@currentUser.canDecide()}">
+    <div class="page-head">
+        <h1 th:text="#{nav.dashboard}">Dashboard</h1>
+        <div class="actions">
+            <form sec:authorize="hasAnyRole('ADMIN','DIRECTOR','HEAD','SECRETARY')" th:action="@{/dashboard/morning-summary}" method="post">
+                <button class="btn btn-light"><i class="bi bi-sunrise"></i> <span th:text="#{dash.sendSummary}"></span></button></form>
+            <a sec:authorize="hasAnyRole('ADMIN','DIRECTOR','SECRETARY','RECEPTION','HEAD')" th:href="@{/requests/new}" class="btn btn-accent"><i class="bi bi-plus-lg"></i> <span th:text="#{nav.newRequest}"></span></a>
+        </div>
+    </div>
+
+    <div class="figures mb-3">
+        <a class="figure" th:href="@{/waiting-list}"><div class="val num" th:text="${pendingCount}">0</div><div class="lbl" th:text="#{dash.pending}"></div></a>
+        <a class="figure" th:classappend="${overdueCount > 0} ? alert-fig" th:href="@{/waiting-list(overdueOnly=true)}"><div class="val num" th:text="${overdueCount}">0</div><div class="lbl" th:text="#{dash.overdue}"></div></a>
+        <a class="figure" th:href="@{/timeline}"><div class="val num" th:text="${#lists.size(agenda)}">0</div><div class="lbl" th:text="#{dash.today}"></div></a>
+        <a class="figure" th:classappend="${!#lists.isEmpty(lobby)} ? accent-fig" th:href="@{/queue}"><div class="val num" th:text="${#lists.size(lobby)}">0</div><div class="lbl" th:text="#{dash.inLobby}"></div></a>
+        <div class="figure"><div class="val num" th:text="${month.completed}">0</div><div class="lbl" th:text="#{dash.monthCompleted}"></div></div>
+        <div class="figure"><div class="val num"><span th:text="${month.approvalRate}"></span><small>%</small></div><div class="lbl" th:text="#{report.approvalRate}"></div></div>
+    </div>
+
+    <!-- Today's agenda as a short list -->
+    <div class="panel mb-3">
+        <div class="panel-head">
+            <h2><span th:text="#{dash.agenda}"></span> <span class="small-muted fw-normal" th:text="${#lists.size(agenda)}"></span></h2>
+            <a class="link" th:href="@{/calendar}" th:text="#{dash.openCalendar}"></a>
+        </div>
+        <ul class="list" th:if="${!#lists.isEmpty(agenda)}">
+            <li th:each="r : ${agenda}">
+                <span class="small-muted ltr" th:text="${@dates.time(r.scheduledStart)}"></span>
+                <div class="grow">
+                    <a class="row-title" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.visitor.fullName}"></a>
+                    <div class="row-sub truncate" th:text="${r.subject}"></div>
+                </div>
+                <th:block th:if="${currentOffice == null}"><span th:replace="~{fragments :: office(${r.office})}"></span></th:block>
+                <span th:replace="~{fragments :: status(${r.status})}"></span>
+            </li>
+        </ul>
+        <div th:if="${#lists.isEmpty(agenda)}" class="panel-empty"><i class="bi bi-calendar2"></i><span th:text="#{dash.noAgenda}"></span></div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <!-- Decisions for heads / directors; waiting list for everybody else -->
+            <div class="panel" th:if="${decider}">
+                <div class="panel-head">
+                    <h2 th:text="#{dash.awaitingDecision}"></h2>
+                    <a class="link" th:href="@{/waiting-list(recommendedOnly=true)}" th:text="#{common.viewAll}"></a>
+                </div>
+                <ul class="list" th:if="${!#lists.isEmpty(awaitingDecision)}">
+                    <li th:each="r : ${awaitingDecision}">
+                        <div class="grow">
+                            <a class="row-title" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.visitor.fullName}"></a>
+                            <div class="row-sub truncate" th:text="${r.subject}"></div>
+                            <div class="row-sub"><i class="bi bi-hand-thumbs-up"></i> <b th:text="${@labels.t(r.recommendation)}"></b>
+                                <span th:if="${r.recommendationNote}" th:text="${' — ' + r.recommendationNote}"></span></div>
+                        </div>
+                        <th:block th:if="${currentOffice == null}"><span th:replace="~{fragments :: office(${r.office})}"></span></th:block>
+                        <form th:action="@{/requests/{id}/approve(id=${r.id})}" method="post">
+                            <input type="hidden" name="back" value="/dashboard"><button class="btn btn-primary btn-sm" th:text="#{action.approve}"></button></form>
+                        <a class="btn btn-light btn-sm" th:href="@{/requests/{id}(id=${r.id})}" th:text="#{common.open}"></a>
+                    </li>
+                </ul>
+                <div th:if="${#lists.isEmpty(awaitingDecision)}" class="panel-empty"><i class="bi bi-check2-all"></i><span th:text="#{dash.noDecisions}"></span></div>
+            </div>
+
+            <div class="panel" th:unless="${decider}">
+                <div class="panel-head"><h2 th:text="#{nav.waitingList}"></h2><a class="link" th:href="@{/waiting-list}" th:text="#{common.viewAll}"></a></div>
+                <ul class="list" th:if="${!#lists.isEmpty(pending)}">
+                    <li th:each="r : ${pending}">
+                        <div class="grow">
+                            <a class="row-title" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.visitor.fullName}"></a>
+                            <div class="row-sub truncate" th:text="${r.subject}"></div>
+                        </div>
+                        <span th:replace="~{fragments :: flags(${r})}"></span>
+                        <span th:replace="~{fragments :: status(${r.status})}"></span>
+                    </li>
+                </ul>
+                <div th:if="${#lists.isEmpty(pending)}" class="panel-empty"><i class="bi bi-inbox"></i><span th:text="#{wait.empty}"></span></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{dash.recent}"></h2><a class="link" th:href="@{/requests}" th:text="#{common.viewAll}"></a></div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <tbody>
+                        <tr th:each="r : ${recent}" th:data-href="@{/requests/{id}(id=${r.id})}">
+                            <td><div class="row-title" th:text="${r.visitor.fullName}"></div><div class="row-sub truncate" style="max-width:360px" th:text="${r.subject}"></div></td>
+                            <td th:if="${currentOffice == null}"><span th:replace="~{fragments :: office(${r.office})}"></span></td>
+                            <td><span th:replace="~{fragments :: status(${r.status})}"></span></td>
+                            <td class="small-muted text-nowrap ltr" th:text="${@dates.dt(r.updatedAt)}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{dash.lobbyNow}"></h2><a class="link" th:href="@{/queue}" th:text="#{nav.queue}"></a></div>
+                <ul class="list" th:if="${!#lists.isEmpty(lobby)}">
+                    <li th:each="r : ${lobby}">
+                        <span class="queue-number" style="font-size:1.4rem" th:text="${r.queueNumber}"></span>
+                        <div class="grow">
+                            <a class="row-title" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.visitor.shortName}"></a>
+                            <div class="row-sub"><i class="bi bi-clock"></i> <span th:text="${@dates.minutes(r.lobbyWaitMinutes)}"></span></div>
+                        </div>
+                        <span th:replace="~{fragments :: status(${r.status})}"></span>
+                        <form th:if="${r.status.name() == 'CHECKED_IN'}" sec:authorize="hasAnyRole('RECEPTION','SECRETARY','DIRECTOR','ADMIN','HEAD')" th:action="@{/requests/{id}/call(id=${r.id})}" method="post">
+                            <input type="hidden" name="back" value="/dashboard"><button class="btn btn-accent btn-sm" th:text="#{action.callIn}"></button></form>
+                    </li>
+                </ul>
+                <div th:if="${#lists.isEmpty(lobby)}" class="panel-empty"><i class="bi bi-door-open"></i><span th:text="#{dash.lobbyEmpty}"></span></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{dash.myTasks}"></h2><a class="link" th:href="@{/tasks}" th:text="#{common.viewAll}"></a></div>
+                <ul class="list" th:if="${!#lists.isEmpty(myTasks)}">
+                    <li th:each="t : ${myTasks}">
+                        <i class="bi bi-circle" th:classappend="${t.overdue} ? 'text-danger'"></i>
+                        <div class="grow truncate" th:text="${t.title}"></div>
+                        <span class="small-muted ltr" th:classappend="${t.overdue} ? 'text-danger fw-bold'" th:text="${@dates.date(t.dueDate)}"></span>
+                    </li>
+                </ul>
+                <div th:if="${#lists.isEmpty(myTasks)}" class="panel-empty" th:text="#{task.noneOpen}"></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{dash.approvedUnscheduled}"></h2></div>
+                <ul class="list" th:if="${!#lists.isEmpty(approvedUnscheduled)}">
+                    <li th:each="r : ${approvedUnscheduled}">
+                        <div class="grow"><a class="row-title" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.visitor.shortName}"></a>
+                            <div class="row-sub truncate" th:text="${r.subject}"></div></div>
+                        <a class="btn btn-light btn-sm" th:href="@{/calendar}" th:text="#{action.schedule}"></a>
+                    </li>
+                </ul>
+                <div th:if="${#lists.isEmpty(approvedUnscheduled)}" class="panel-empty" th:text="#{common.none}"></div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.queue}">Lobby queue</title></head>
+<body>
+<section data-refresh="30">
+    <div class="page-head">
+        <div><h1 th:text="#{nav.queue}"></h1><div class="sub" th:text="#{queue.sub}"></div></div>
+        <div class="actions"><a th:href="${currentOffice != null} ? @{/public/lobby(office=${currentOffice.code})} : @{/public/lobby}" target="_blank" class="btn btn-light"><i class="bi bi-display"></i> <span th:text="#{nav.lobbyScreen}"></span></a></div>
+    </div>
+    <div class="row g-3">
+        <div class="col-md-6 col-xl-4" th:each="r : ${lobby}">
+            <div class="queue-card" th:classappend="${r.status.name() == 'IN_MEETING'} ? live">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="queue-number" th:text="${r.queueNumber}">1</span>
+                    <div class="text-end"><span th:replace="~{fragments :: status(${r.status})}"></span>
+                        <div class="mt-1"><span th:replace="~{fragments :: office(${r.office})}"></span></div></div>
+                </div>
+                <a class="row-title fs-5" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.visitor.fullName}"></a>
+                <div class="row-sub" th:text="${r.subject}"></div>
+                <dl class="kv mt-2">
+                    <dt th:text="#{req.checkIn}"></dt><dd class="ltr" th:text="${@dates.time(r.checkInAt)}"></dd>
+                    <dt th:text="#{req.scheduled}"></dt><dd class="ltr" th:text="${@dates.time(r.scheduledStart) ?: '—'}"></dd>
+                    <dt th:text="#{req.lobbyWait}"></dt><dd th:classappend="${r.lobbyWaitMinutes > 30} ? 'text-danger fw-bold'" th:text="${@dates.minutes(r.lobbyWaitMinutes)}"></dd>
+                </dl>
+                <div class="d-flex gap-2 mt-3" sec:authorize="hasAnyRole('RECEPTION','SECRETARY','DIRECTOR','ADMIN','HEAD')">
+                    <form th:if="${r.status.name() == 'CHECKED_IN'}" th:action="@{/requests/{id}/call(id=${r.id})}" method="post">
+                        <input type="hidden" name="back" value="/queue"><button class="btn btn-accent btn-sm"><i class="bi bi-megaphone"></i> <span th:text="#{action.callIn}"></span></button></form>
+                    <form th:action="@{/requests/{id}/complete(id=${r.id})}" method="post">
+                        <input type="hidden" name="back" value="/queue"><button class="btn btn-light btn-sm"><i class="bi bi-check2-all"></i> <span th:text="#{action.complete}"></span></button></form>
+                    <a th:href="@{/requests/{id}/badge(id=${r.id})}" target="_blank" class="btn btn-light btn-sm" th:attr="aria-label=#{req.printBadge}"><i class="bi bi-printer"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div th:if="${#lists.isEmpty(lobby)}" class="panel panel-empty"><i class="bi bi-door-open"></i><span th:text="#{dash.lobbyEmpty}"></span></div>
+</section>
+</body>
+</html>

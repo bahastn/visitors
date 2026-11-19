@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${lang}" th:dir="${rtl} ? 'rtl' : 'ltr'">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="#{nav.lobbyScreen}">Lobby</title>
+    <link rel="stylesheet" th:href="${rtl} ? @{/vendor/bootstrap/bootstrap.rtl.min.css} : @{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="lobby-screen" th:data-office="${lobbyOffice?.code}" th:data-url="@{/public/lobby/data}">
+<div class="container-fluid py-4 px-5 d-flex flex-column" style="min-height:100vh">
+    <div class="d-flex justify-content-between align-items-center">
+        <div><div class="fs-2 fw-bold" th:text="${lobbyOffice != null} ? ${lobbyOffice.name} : ${@settings.orgName()}"></div>
+            <div style="color:#a9bdd1" th:text="${lobbyOffice != null} ? ${@settings.orgName()} : #{scope.allOffices}"></div></div>
+        <div class="fs-1 fw-bold" id="clock" dir="ltr"></div>
+    </div>
+    <div class="lobby-rule"></div>
+    <div class="row flex-fill align-items-center">
+        <div class="col-lg-6 text-center">
+            <div class="fs-3" style="color:#a9bdd1" th:text="#{lobby.now}"></div>
+            <div class="now" id="now" dir="ltr">—</div>
+        </div>
+        <div class="col-lg-6 text-center">
+            <div class="fs-3" style="color:#a9bdd1" th:text="#{lobby.waiting}"></div>
+            <div class="waiting mt-3" id="waiting" dir="ltr"></div>
+        </div>
+    </div>
+    <div class="text-center pb-2" style="color:#a9bdd1" th:text="#{lobby.footer}"></div>
+</div>
+<script>
+    const body = document.body, office = body.dataset.office;
+    const url = body.dataset.url + (office ? '?office=' + encodeURIComponent(office) : '');
+    let last = null;
+    function beep() {
+        try { const c = new AudioContext(), o = c.createOscillator(); o.connect(c.destination); o.frequency.value = 880; o.start(); setTimeout(() => { o.stop(); c.close(); }, 350); } catch (e) { /* no audio */ }
+    }
+    function load() {
+        fetch(url).then(r => r.json()).then(d => {
+            const now = d.now.length ? d.now.join('  ') : '—';
+            if (last !== null && now !== last && d.now.length) beep();
+            last = now;
+            document.getElementById('now').textContent = now;
+            const w = document.getElementById('waiting');
+            w.replaceChildren(...d.waiting.map(n => { const s = document.createElement('span'); s.textContent = n; return s; }));
+        }).catch(() => {});
+    }
+    function clock() { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
+    load(); clock();
+    setInterval(load, 5000); setInterval(clock, 10000);
+</script>
+</body>
+</html>

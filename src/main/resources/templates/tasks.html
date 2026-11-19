@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.tasks}">Tasks</title></head>
+<body>
+<section>
+    <div class="page-head">
+        <div><h1 th:text="#{nav.tasks}"></h1><div class="sub" th:text="#{task.sub}"></div></div>
+        <div class="segmented">
+            <a th:href="@{/tasks(view='mine')}" th:classappend="${view == 'mine'} ? active" th:text="#{task.mine}"></a>
+            <a th:href="@{/tasks(view='open')}" th:classappend="${view == 'open'} ? active" th:text="#{task.allOpen}"></a>
+            <a th:href="@{/tasks(view='all')}" th:classappend="${view == 'all'} ? active" th:text="#{common.all}"></a>
+        </div>
+    </div>
+    <div class="panel">
+        <form th:action="@{/tasks}" method="post" class="filter-bar">
+            <input name="title" class="form-control grow" required th:placeholder="#{task.titleHint}" th:attr="aria-label=#{task.title}">
+            <select name="ownerId" class="form-select" th:attr="aria-label=#{task.owner}"><option value="" th:text="#{task.owner}"></option>
+                <option th:each="u : ${staff}" th:value="${u.id}" th:text="${u.fullName}"></option></select>
+            <input type="date" name="dueDate" class="form-control" th:attr="aria-label=#{task.due}">
+            <button class="btn btn-primary"><i class="bi bi-plus-lg"></i> <span th:text="#{task.add}"></span></button>
+        </form>
+        <div class="table-responsive">
+            <table class="table">
+                <thead th:if="${!#lists.isEmpty(tasks)}"><tr><th th:text="#{task.title}"></th><th th:text="#{task.related}"></th><th th:text="#{task.owner}"></th><th th:text="#{task.due}"></th><th th:text="#{req.status}"></th></tr></thead>
+                <tbody>
+                <tr th:each="t : ${tasks}" th:classappend="${t.overdue} ? tr-alert">
+                    <td><div class="row-title" th:text="${t.title}"></div><div class="row-sub" th:text="${t.description}"></div>
+                        <div class="row-sub" style="color:var(--olive)" th:if="${t.resultNote}" th:text="${t.resultNote}"></div></td>
+                    <td class="small">
+                        <a th:if="${t.request}" th:href="@{/requests/{id}(id=${t.request.id})}" class="ltr d-block" th:text="${t.request.referenceNumber}"></a>
+                        <a th:if="${t.constituentCase}" th:href="@{/cases/{id}(id=${t.constituentCase.id})}" class="ltr d-block" th:text="${t.constituentCase.caseNumber}"></a>
+                        <span th:if="${t.office}" class="row-sub" th:text="${t.office.name}"></span></td>
+                    <td><form th:action="@{/tasks/{id}/owner(id=${t.id})}" method="post">
+                        <select name="ownerId" class="form-select form-select-sm" onchange="this.form.submit()" th:attr="aria-label=#{task.owner}"><option value="" th:text="#{req.nobody}"></option>
+                            <option th:each="u : ${staff}" th:value="${u.id}" th:text="${u.fullName}" th:selected="${t.owner != null and t.owner.id == u.id}"></option></select></form></td>
+                    <td class="text-nowrap ltr" th:classappend="${t.overdue} ? 'fw-bold text-danger'" th:text="${@dates.date(t.dueDate)}"></td>
+                    <td><form th:action="@{/tasks/{id}/status(id=${t.id})}" method="post" class="d-flex gap-1">
+                        <input type="hidden" name="back" th:value="${'/tasks?view=' + view}">
+                        <select name="status" class="form-select form-select-sm" th:attr="aria-label=#{req.status}">
+                            <option th:each="e : ${@labels.values('TaskStatus')}" th:value="${e}" th:text="${@labels.t(e)}" th:selected="${t.status == e}"></option></select>
+                        <input name="resultNote" class="form-control form-control-sm" th:placeholder="#{task.result}" th:attr="aria-label=#{task.result}">
+                        <button class="btn btn-light btn-sm" th:attr="aria-label=#{common.save}"><i class="bi bi-check-lg"></i></button></form></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${#lists.isEmpty(tasks)}" class="panel-empty"><i class="bi bi-check2-square"></i><span th:text="#{task.noneOpen}"></span></div>
+    </div>
+</section>
+</body>
+</html>

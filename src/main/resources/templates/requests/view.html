@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="${r.referenceNumber}">Request</title></head>
+<body>
+<section th:with="canRecommend=${@currentUser.is('SECRETARY','DIRECTOR','ADMIN') and r.office.twoLevelApproval},
+                  canSchedule=${@currentUser.is('SECRETARY','DIRECTOR','ADMIN','HEAD')},
+                  canReceive=${@currentUser.is('RECEPTION','SECRETARY','SECURITY','DIRECTOR','ADMIN')},
+                  canMeet=${@currentUser.is('RECEPTION','SECRETARY','DIRECTOR','ADMIN','HEAD')},
+                  canEdit=${@currentUser.is('ADMIN','DIRECTOR','SECRETARY','RECEPTION','HEAD')},
+                  st=${r.status.name()}, tab=${param.tab != null ? param.tab[0] : 'overview'}">
+
+    <div class="crumb"><a th:href="@{/requests}" th:text="#{nav.requests}"></a> / <span class="ltr" th:text="${r.referenceNumber}"></span></div>
+
+    <div th:if="${r.watchlistFlag}" class="alert alert-danger"><i class="bi bi-shield-exclamation"></i> <span th:text="#{watch.requestFlagged}"></span></div>
+
+    <!-- ===== Header ===== -->
+    <div class="req-head">
+        <div class="d-flex flex-wrap justify-content-between gap-3">
+            <div class="flex-grow-1" style="min-width:260px">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span th:replace="~{fragments :: status(${r.status})}"></span>
+                    <span th:replace="~{fragments :: flags(${r})}"></span>
+                    <span th:replace="~{fragments :: office(${r.office})}"></span>
+                </div>
+                <h1 th:text="${r.subject}">Subject</h1>
+                <div class="req-meta">
+                    <span><i class="bi bi-person"></i> <a th:href="@{/visitors/{id}(id=${r.visitor.id})}" th:text="${r.visitor.fullName}"></a></span>
+                    <span><i class="bi bi-hash"></i> <span class="ltr" th:text="${r.referenceNumber}"></span></span>
+                    <span><i class="bi bi-inbox"></i> <span th:text="${@labels.t(r.channel)}"></span> · <span class="ltr" th:text="${@dates.date(r.createdAt)}"></span></span>
+                    <span th:if="${r.scheduledStart}"><i class="bi bi-calendar-event"></i> <span th:text="${@dates.dayName(r.scheduledStart.toLocalDate()) + ' ' + @dates.longDate(r.scheduledStart)}"></span> <b class="ltr" th:text="${@dates.time(r.scheduledStart)}"></b></span>
+                    <span th:if="${r.managedBy}"><i class="bi bi-person-check"></i> <span th:text="${r.managedBy.fullName}"></span></span>
+                </div>
+            </div>
+            <div class="d-flex gap-2 align-items-start flex-wrap">
+                <a th:if="${canEdit and !r.status.final}" th:href="@{/requests/{id}/edit(id=${r.id})}" class="btn btn-light btn-sm"><i class="bi bi-pencil"></i> <span th:text="#{common.edit}"></span></a>
+                <a th:if="${r.qrToken != null}" th:href="@{/requests/{id}/badge(id=${r.id})}" target="_blank" class="btn btn-light btn-sm"><i class="bi bi-printer"></i> <span th:text="#{req.printBadge}"></span></a>
+                <a th:if="${r.scheduledStart != null}" th:href="@{/requests/{id}/event.ics(id=${r.id})}" class="btn btn-light btn-sm" th:title="#{req.addToCalendar}"><i class="bi bi-calendar-plus"></i></a>
+            </div>
+        </div>
+        <div class="stepper" th:with="stage=${r.status.stage}">
+            <div th:each="k, it : ${ {'step.requested','step.review','step.approved','step.scheduled','step.arrived','step.meeting','step.completed'} }"
+                 class="step" th:classappend="${it.index < stage or st == 'COMPLETED'} ? done : (${it.index == stage} ? (${r.status.stopped} ? stop : now) : '')"
+                 th:text="${it.index == stage and r.status.stopped} ? ${@labels.t(r.status)} : #{${k}}"></div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- ===== Main column with tabs ===== -->
+        <div class="col-xl-8">
+            <nav class="tabs" role="tablist">
+                <a th:href="@{/requests/{id}(id=${r.id},tab='overview')}" th:classappend="${tab == 'overview'} ? active" th:text="#{tab.overview}"></a>
+                <a th:href="@{/requests/{id}(id=${r.id},tab='people')}" th:classappend="${tab == 'people'} ? active"><span th:text="#{tab.people}"></span><span class="count" th:text="${#lists.size(r.members) + 1}"></span></a>
+                <a th:href="@{/requests/{id}(id=${r.id},tab='files')}" th:classappend="${tab == 'files'} ? active"><span th:text="#{tab.files}"></span><span class="count" th:text="${#lists.size(r.attachments)}"></span></a>
+                <a th:href="@{/requests/{id}(id=${r.id},tab='tasks')}" th:classappend="${tab == 'tasks'} ? active"><span th:text="#{tab.tasks}"></span><span class="count" th:text="${#lists.size(r.tasks)}"></span></a>
+                <a th:href="@{/requests/{id}(id=${r.id},tab='notes')}" th:classappend="${tab == 'notes'} ? active"><span th:text="#{tab.notes}"></span><span class="count" th:text="${#lists.size(r.notes)}"></span></a>
+                <a th:href="@{/requests/{id}(id=${r.id},tab='outcome')}" th:classappend="${tab == 'outcome'} ? active" th:text="#{tab.outcome}"></a>
+                <a th:href="@{/requests/{id}(id=${r.id},tab='history')}" th:classappend="${tab == 'history'} ? active" th:text="#{tab.history}"></a>
+            </nav>
+
+            <!-- Overview -->
+            <div th:if="${tab == 'overview'}">
+                <div class="panel">
+                    <div class="panel-body">
+                        <p class="mb-4" style="white-space:pre-line;max-width:75ch" th:text="${r.description ?: #messages.msg('req.noDescription')}"></p>
+                        <dl class="kv">
+                            <dt th:text="#{req.purpose}"></dt><dd th:text="${@labels.t(r.purpose)}"></dd>
+                            <dt th:text="#{req.priority}"></dt><dd th:text="${@labels.t(r.priority)}"></dd>
+                            <dt th:text="#{req.meetingWith}"></dt><dd th:text="${r.meetingWith ?: r.office.hostTitle}"></dd>
+                            <dt th:text="#{req.location}"></dt><dd th:text="${r.location ?: '—'}"></dd>
+                            <dt th:text="#{req.preferredDate}"></dt><dd><span class="ltr" th:text="${@dates.date(r.preferredDate) ?: '—'}"></span> <span th:text="${r.preferredTime}"></span></dd>
+                            <dt th:text="#{req.duration}"></dt><dd th:text="#{common.nMinutes(${r.durationMinutes})}"></dd>
+                            <dt th:text="#{req.attendees}"></dt><dd th:text="${r.expectedAttendees}"></dd>
+                            <dt th:text="#{req.interpreter}"></dt><dd th:text="${r.needsInterpreter} ? #{common.yes} : #{common.no}"></dd>
+                            <dt th:text="#{req.accessibility}"></dt><dd th:text="${r.accessibilityNeeds ?: '—'}"></dd>
+                            <dt th:text="#{req.vehiclePlate}"></dt><dd class="ltr" th:text="${r.vehiclePlate ?: '—'}"></dd>
+                            <dt th:text="#{req.referredByPerson}"></dt><dd th:text="${r.referredByPerson ?: '—'}"></dd>
+                            <th:block th:if="${r.referredFrom}"><dt th:text="#{req.referredFrom}"></dt><dd th:text="${r.referredFrom.name}"></dd></th:block>
+                            <th:block th:if="${r.referredTo}"><dt th:text="#{req.referTo}"></dt><dd th:text="${r.referredTo.name}"></dd></th:block>
+                            <dt th:text="#{common.createdBy}"></dt><dd th:text="${r.createdBy?.fullName ?: #messages.msg('common.publicForm')}"></dd>
+                        </dl>
+                    </div>
+                </div>
+                <div class="panel" th:if="${r.recommendation != null or r.decidedBy != null}">
+                    <div class="panel-head"><h3 th:text="#{req.decisionRecord}"></h3></div>
+                    <div class="panel-body">
+                        <div th:if="${r.recommendation != null}" class="mb-3">
+                            <div><span class="tag info"><i class="bi bi-hand-thumbs-up"></i> <span th:text="${@labels.t(r.recommendation)}"></span></span>
+                                <span class="small-muted" th:text="${(r.recommendedBy?.fullName ?: '') + ' · '}"></span><span class="small-muted ltr" th:text="${@dates.dt(r.recommendedAt)}"></span></div>
+                            <div class="mt-1" th:if="${r.recommendationNote}" th:text="${r.recommendationNote}"></div>
+                        </div>
+                        <div th:if="${r.decidedBy != null}">
+                            <div><b th:text="#{req.decision}"></b>: <span th:replace="~{fragments :: status(${r.status})}"></span>
+                                <span class="small-muted" th:text="${r.decidedBy.fullName + ' · '}"></span><span class="small-muted ltr" th:text="${@dates.dt(r.decidedAt)}"></span></div>
+                            <div class="mt-1" th:if="${r.decisionReason}" th:text="${r.decisionReason}"></div>
+                            <div class="mt-1 small-muted" th:if="${r.postponedUntil}"><span th:text="#{req.postponeUntil}"></span>: <span class="ltr" th:text="${@dates.date(r.postponedUntil)}"></span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel" th:if="${!#lists.isEmpty(previousVisits)}">
+                    <div class="panel-head"><h3 th:text="#{req.previousVisits}"></h3></div>
+                    <ul class="list">
+                        <li th:each="p : ${previousVisits}">
+                            <div class="grow"><a class="row-title" th:href="@{/requests/{id}(id=${p.id})}" th:text="${p.subject}"></a>
+                                <div class="row-sub"><span th:text="${p.office.name}"></span> · <span class="ltr" th:text="${@dates.date(p.createdAt)}"></span></div></div>
+                            <span th:replace="~{fragments :: status(${p.status})}"></span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- People: main visitor + delegation -->
+            <div th:if="${tab == 'people'}" class="panel">
+                <div class="panel-head"><h3 th:text="#{req.delegation}"></h3></div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th th:text="#{visitor.name}"></th><th th:text="#{visitor.jobTitle}"></th><th th:text="#{visitor.organization}"></th><th th:text="#{visitor.phone}"></th><th th:text="#{visitor.idNumber}"></th><th></th></tr></thead>
+                        <tbody>
+                        <tr>
+                            <td><span class="row-title" th:text="${r.visitor.fullName}"></span> <span class="tag info" th:text="#{req.mainVisitor}"></span></td>
+                            <td th:text="${r.visitor.jobTitle}"></td><td th:text="${r.visitor.organization}"></td>
+                            <td class="ltr" th:text="${r.visitor.phone}"></td><td class="ltr" th:text="${r.visitor.maskedIdNumber}"></td><td></td>
+                        </tr>
+                        <tr th:each="m : ${r.members}">
+                            <td><span class="row-title" th:text="${m.fullName}"></span>
+                                <span th:if="${m.watchlistFlag}" class="tag danger"><i class="bi bi-shield-exclamation"></i></span>
+                                <i th:if="${m.checkInAt}" class="bi bi-check-circle-fill" style="color:var(--olive)" th:title="${@dates.time(m.checkInAt)}"></i></td>
+                            <td th:text="${m.jobTitle}"></td><td th:text="${m.organization}"></td>
+                            <td class="ltr" th:text="${m.phone}"></td>
+                            <td class="ltr" th:text="${m.idNumber != null and #strings.length(m.idNumber) > 4} ? ${'••••' + #strings.substring(m.idNumber, #strings.length(m.idNumber) - 4)} : ${m.idNumber}"></td>
+                            <td><form th:if="${canEdit and !r.status.final}" th:action="@{/requests/{id}/members/{mid}/delete(id=${r.id},mid=${m.id})}" method="post" th:data-confirm="#{common.areYouSure}">
+                                <button class="btn btn-ghost btn-sm text-danger" th:attr="aria-label=#{common.delete}"><i class="bi bi-trash"></i></button></form></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="panel-foot" th:if="${canEdit and !r.status.final}">
+                    <form th:action="@{/requests/{id}/members(id=${r.id})}" th:object="${member}" method="post" class="row g-2">
+                        <div class="col-md-3"><input class="form-control form-control-sm" th:field="*{fullName}" required th:placeholder="#{visitor.name}"></div>
+                        <div class="col-md-2"><input class="form-control form-control-sm" th:field="*{jobTitle}" th:placeholder="#{visitor.jobTitle}"></div>
+                        <div class="col-md-2"><input class="form-control form-control-sm" th:field="*{organization}" th:placeholder="#{visitor.organization}"></div>
+                        <div class="col-md-2"><input class="form-control form-control-sm" th:field="*{phone}" dir="ltr" th:placeholder="#{visitor.phone}"></div>
+                        <div class="col-md-2"><input class="form-control form-control-sm" th:field="*{idNumber}" dir="ltr" th:placeholder="#{visitor.idNumber}"></div>
+                        <div class="col-md-1"><button class="btn btn-primary btn-sm w-100" th:attr="aria-label=#{common.add}"><i class="bi bi-plus-lg"></i></button></div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Files -->
+            <div th:if="${tab == 'files'}" class="panel">
+                <ul class="list" th:if="${!#lists.isEmpty(r.attachments)}">
+                    <li th:each="a : ${r.attachments}">
+                        <i class="bi bi-file-earmark-text fs-4" style="color:var(--teal)"></i>
+                        <div class="grow"><a class="row-title" th:href="@{/requests/attachments/{aid}(aid=${a.id})}" target="_blank" th:text="${a.fileName}"></a>
+                            <div class="row-sub"><span th:text="${a.description}"></span> <span th:text="${a.uploadedBy?.fullName ?: #messages.msg('common.publicForm')}"></span> · <span class="ltr" th:text="${@dates.dt(a.uploadedAt)}"></span> · <span class="ltr" th:text="${a.sizeBytes / 1024 + ' KB'}"></span></div></div>
+                        <form sec:authorize="hasAnyRole('ADMIN','DIRECTOR','SECRETARY')" th:action="@{/requests/{id}/attachments/{aid}/delete(id=${r.id},aid=${a.id})}" method="post" th:data-confirm="#{common.areYouSure}">
+                            <button class="btn btn-ghost btn-sm text-danger" th:attr="aria-label=#{common.delete}"><i class="bi bi-trash"></i></button></form>
+                    </li>
+                </ul>
+                <div th:if="${#lists.isEmpty(r.attachments)}" class="panel-empty"><i class="bi bi-paperclip"></i><span th:text="#{req.noFiles}"></span></div>
+                <div class="panel-foot">
+                    <form th:action="@{/requests/{id}/attachments(id=${r.id})}" method="post" enctype="multipart/form-data" class="row g-2">
+                        <div class="col-md-5"><input type="file" name="file" class="form-control form-control-sm" required></div>
+                        <div class="col-md-5"><input name="description" class="form-control form-control-sm" th:placeholder="#{req.attachDescription}"></div>
+                        <div class="col-md-2"><button class="btn btn-primary btn-sm w-100"><i class="bi bi-upload"></i> <span th:text="#{common.upload}"></span></button></div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Follow-up tasks -->
+            <div th:if="${tab == 'tasks'}" class="panel">
+                <ul class="list" th:if="${!#lists.isEmpty(r.tasks)}">
+                    <li th:each="t : ${r.tasks}">
+                        <div class="grow"><div class="row-title" th:classappend="${t.status.name() == 'DONE'} ? 'text-decoration-line-through text-muted'" th:text="${t.title}"></div>
+                            <div class="row-sub"><span th:text="${t.owner?.fullName ?: '—'}"></span> · <span class="ltr" th:classappend="${t.overdue} ? 'text-danger fw-bold'" th:text="${@dates.date(t.dueDate)}"></span></div></div>
+                        <form th:action="@{/tasks/{tid}/status(tid=${t.id})}" method="post">
+                            <input type="hidden" name="back" th:value="${'/requests/' + r.id + '?tab=tasks'}">
+                            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()" th:attr="aria-label=#{req.status}">
+                                <option th:each="e : ${@labels.values('TaskStatus')}" th:value="${e}" th:text="${@labels.t(e)}" th:selected="${t.status == e}"></option></select>
+                        </form>
+                    </li>
+                </ul>
+                <div th:if="${#lists.isEmpty(r.tasks)}" class="panel-empty"><i class="bi bi-check2-square"></i><span th:text="#{task.noneYet}"></span></div>
+                <div class="panel-foot">
+                    <form th:action="@{/requests/{id}/tasks(id=${r.id})}" method="post" class="row g-2">
+                        <div class="col-md-5"><input name="title" class="form-control form-control-sm" required th:placeholder="#{task.titleHint}"></div>
+                        <div class="col-md-3"><select name="ownerId" class="form-select form-select-sm"><option value="" th:text="#{task.owner}"></option>
+                            <option th:each="u : ${staff}" th:value="${u.id}" th:text="${u.fullName}"></option></select></div>
+                        <div class="col-md-3"><input type="date" name="dueDate" class="form-control form-control-sm" th:attr="aria-label=#{task.due}"></div>
+                        <div class="col-md-1"><button class="btn btn-primary btn-sm w-100" th:attr="aria-label=#{common.add}"><i class="bi bi-plus-lg"></i></button></div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Internal notes -->
+            <div th:if="${tab == 'notes'}" class="panel">
+                <div class="panel-head"><h3><i class="bi bi-lock"></i> <span th:text="#{req.internalNotes}"></span></h3><span class="small-muted" th:text="#{req.internalNotesHint}"></span></div>
+                <ul class="list" th:if="${!#lists.isEmpty(r.notes)}">
+                    <li th:each="n : ${r.notes}" class="align-items-start">
+                        <span class="avatar" style="width:28px;height:28px;font-size:.75rem" th:text="${n.author != null ? #strings.substring(n.author.fullName, 0, 1) : '?'}"></span>
+                        <div class="grow"><div class="row-sub"><b th:text="${n.author?.fullName}"></b> · <span class="ltr" th:text="${@dates.dt(n.createdAt)}"></span></div>
+                            <div style="white-space:pre-line" th:text="${n.text}"></div></div>
+                    </li>
+                </ul>
+                <div class="panel-foot">
+                    <form th:action="@{/requests/{id}/notes(id=${r.id})}" method="post" class="d-flex gap-2">
+                        <textarea name="text" class="form-control form-control-sm" rows="2" required th:placeholder="#{req.addNote}"></textarea>
+                        <button class="btn btn-primary btn-sm align-self-end" th:text="#{common.add}"></button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Outcome & summary -->
+            <div th:if="${tab == 'outcome'}">
+                <div class="panel">
+                    <div class="panel-head"><h3 th:text="#{req.outcome}"></h3></div>
+                    <div class="panel-body">
+                        <form th:if="${canMeet}" th:action="@{/requests/{id}/outcome(id=${r.id})}" method="post">
+                            <textarea name="outcome" class="form-control mb-2" rows="4" th:text="${r.outcomeSummary}" th:placeholder="#{req.outcomeHint}"></textarea>
+                            <button class="btn btn-primary btn-sm" th:text="#{common.save}"></button>
+                        </form>
+                        <p th:unless="${canMeet}" style="white-space:pre-line" th:text="${r.outcomeSummary ?: '—'}"></p>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-head"><h3><i class="bi bi-stars" style="color:var(--orange)"></i> <span th:text="#{req.summary}"></span></h3>
+                        <form th:action="@{/requests/{id}/ai-summary(id=${r.id})}" method="post"><button class="btn btn-light btn-sm" th:text="${r.aiSummary == null} ? #{req.aiSummary} : #{req.aiRegenerate}"></button></form></div>
+                    <div class="panel-body">
+                        <div th:if="${r.aiSummary}" style="white-space:pre-line" th:text="${r.aiSummary}"></div>
+                        <div th:if="${r.aiSummary}" class="small-muted mt-2" th:text="${aiConfigured} ? #{req.aiGenerated} : #{req.autoGenerated}"></div>
+                        <div th:unless="${r.aiSummary}" class="small-muted" th:text="#{req.summaryHint}"></div>
+                    </div>
+                </div>
+                <div class="panel" th:if="${feedback}">
+                    <div class="panel-head"><h3 th:text="#{req.feedback}"></h3></div>
+                    <div class="panel-body">
+                        <div class="fs-4" style="color:var(--orange)"><span th:each="i : ${#numbers.sequence(1, feedback.rating)}">★</span></div>
+                        <div th:if="${feedback.issueAddressed != null}"><span th:text="#{feedback.addressed}"></span> <b th:text="${feedback.issueAddressed} ? #{common.yes} : #{common.no}"></b></div>
+                        <div th:text="${feedback.comment}"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div th:if="${tab == 'history'}" class="panel">
+                <div class="panel-body"><ul th:replace="~{fragments :: trail(${trail})}"></ul></div>
+                <div class="panel-foot small-muted"><i class="bi bi-link-45deg"></i> <span th:text="#{req.trackLink}"></span>:
+                    <a th:href="${trackLink}" class="ltr text-break" target="_blank" th:text="${trackLink}"></a></div>
+            </div>
+        </div>
+
+        <!-- ===== Side column: next step, visitor, times, pass ===== -->
+        <div class="col-xl-4">
+            <div class="panel" th:if="${!r.status.final}">
+                <div class="panel-head"><h3><i class="bi bi-signpost-2" style="color:var(--orange)"></i> <span th:text="#{req.nextStep}"></span></h3></div>
+                <div class="panel-body">
+
+                    <th:block th:if="${r.status.pending}">
+                        <form th:if="${st == 'REQUESTED' and (canRecommend or canDecide)}" th:action="@{/requests/{id}/review(id=${r.id})}" method="post" class="mb-3">
+                            <button class="btn btn-light btn-sm w-100"><i class="bi bi-eye"></i> <span th:text="#{action.startReview}"></span></button></form>
+
+                        <div th:if="${canRecommend and !canDecide}" class="action-card">
+                            <h4><i class="bi bi-hand-thumbs-up"></i> <span th:text="#{req.level1}"></span></h4>
+                            <form th:action="@{/requests/{id}/recommend(id=${r.id})}" method="post">
+                                <div class="segmented mb-2 w-100">
+                                    <th:block th:each="e, it : ${@labels.values('Recommendation')}">
+                                        <input type="radio" class="btn-check" name="recommendation" th:id="${'rec' + it.index}" th:value="${e}" th:checked="${it.first}">
+                                        <label class="btn btn-light btn-sm flex-fill" th:for="${'rec' + it.index}" th:text="${@labels.t(e)}"></label>
+                                    </th:block>
+                                </div>
+                                <textarea name="note" class="form-control form-control-sm mb-2" rows="2" th:placeholder="#{req.recommendNote}"></textarea>
+                                <button class="btn btn-teal btn-sm w-100" th:text="#{action.recommend}"></button>
+                            </form>
+                        </div>
+
+                        <th:block th:if="${canDecide}">
+                            <div class="action-card">
+                                <h4><i class="bi bi-check2-circle"></i> <span th:text="#{action.approve}"></span></h4>
+                                <form th:action="@{/requests/{id}/approve(id=${r.id})}" method="post">
+                                    <label class="form-label small" for="approveSlot" th:text="#{req.approveWhen}"></label>
+                                    <select name="scheduleAt" class="form-select form-select-sm mb-2" id="approveSlot">
+                                        <option value="" th:text="#{req.approveOnly}"></option>
+                                        <option th:each="s : ${suggestedSlots}" th:value="${s.start}" th:text="${@dates.dayName(s.start.toLocalDate()) + ' ' + @dates.longDate(s.start) + ' ' + @dates.time(s.start)}"></option></select>
+                                    <input name="reason" class="form-control form-control-sm mb-2" th:placeholder="#{req.noteOptional}">
+                                    <button class="btn btn-primary btn-sm w-100" th:text="#{action.approve}"></button>
+                                </form>
+                            </div>
+                            <div class="action-card">
+                                <h4><i class="bi bi-x-circle"></i> <span th:text="#{action.reject}"></span></h4>
+                                <form th:action="@{/requests/{id}/reject(id=${r.id})}" method="post">
+                                    <textarea name="reason" class="form-control form-control-sm mb-2" rows="2" required th:placeholder="#{req.rejectReason}"></textarea>
+                                    <div class="form-check small mb-2"><input type="checkbox" class="form-check-input" name="shareReason" value="true" id="shareReason">
+                                        <label class="form-check-label" for="shareReason" th:text="#{req.shareReason}"></label></div>
+                                    <button class="btn btn-outline-danger btn-sm w-100" th:text="#{action.reject}"></button>
+                                </form>
+                            </div>
+                            <details class="action-card">
+                                <summary class="fw-bold small" style="color:var(--ink)" th:text="#{req.moreOptions}"></summary>
+                                <form th:action="@{/requests/{id}/postpone(id=${r.id})}" method="post" class="mt-3">
+                                    <label class="form-label small" th:text="#{action.postpone}"></label>
+                                    <div class="d-flex gap-2"><input type="date" name="until" class="form-control form-control-sm" th:attr="aria-label=#{req.postponeUntil}">
+                                        <button class="btn btn-light btn-sm text-nowrap" th:text="#{action.postpone}"></button></div>
+                                    <input name="reason" class="form-control form-control-sm mt-2" th:placeholder="#{req.noteOptional}">
+                                </form>
+                                <form th:action="@{/requests/{id}/refer(id=${r.id})}" method="post" class="mt-3">
+                                    <label class="form-label small" th:text="#{req.referTo}"></label>
+                                    <select name="officeId" class="form-select form-select-sm mb-2" required>
+                                        <option value="" th:text="#{req.chooseOffice}"></option>
+                                        <optgroup th:label="#{office.internal}">
+                                            <option th:each="o : ${referTargets}" th:if="${!o.external}" th:value="${o.id}" th:text="${o.name}"></option></optgroup>
+                                        <optgroup th:label="#{office.externalBodies}">
+                                            <option th:each="o : ${referTargets}" th:if="${o.external}" th:value="${o.id}" th:text="${o.name}"></option></optgroup>
+                                    </select>
+                                    <input name="note" class="form-control form-control-sm mb-2" th:placeholder="#{req.noteOptional}">
+                                    <button class="btn btn-light btn-sm w-100" th:text="#{action.refer}"></button>
+                                </form>
+                            </details>
+                        </th:block>
+                        <p th:if="${!canDecide and !canRecommend}" class="small-muted mb-0" th:text="#{req.waitingDecision}"></p>
+                        <p th:if="${canRecommend and !canDecide and r.recommendation != null}" class="small-muted mt-2 mb-0" th:text="#{req.waitingDecision}"></p>
+                    </th:block>
+
+                    <!-- Schedule / reschedule -->
+                    <div th:if="${(st == 'APPROVED' or st == 'SCHEDULED') and canSchedule}" class="action-card" id="schedule">
+                        <h4><i class="bi bi-calendar-check"></i> <span th:text="${st == 'SCHEDULED'} ? #{action.reschedule} : #{action.schedule}"></span></h4>
+                        <form th:action="@{/requests/{id}/schedule(id=${r.id})}" method="post">
+                            <div class="d-flex flex-wrap gap-1 mb-2" th:if="${!#lists.isEmpty(suggestedSlots)}">
+                                <button type="button" th:each="s : ${suggestedSlots}" class="slot-chip slot-btn" th:data-start="${@dates.input(s.start)}"
+                                        th:text="${@dates.dayName(s.start.toLocalDate()) + ' ' + @dates.time(s.start)}"></button>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-8"><input type="datetime-local" name="start" id="schedStart" class="form-control form-control-sm" required th:value="${@dates.input(r.scheduledStart)}" th:attr="aria-label=#{req.start}"></div>
+                                <div class="col-4"><select name="duration" class="form-select form-select-sm" th:attr="aria-label=#{req.duration}">
+                                    <option th:each="m : ${ {15,30,45,60,90,120} }" th:value="${m}" th:text="#{common.nMinutes(${m})}" th:selected="${m == r.durationMinutes}"></option></select></div>
+                                <div class="col-12"><input name="location" class="form-control form-control-sm" th:value="${r.location}" th:placeholder="#{req.location}"></div>
+                            </div>
+                            <div class="form-check small my-2"><input type="checkbox" class="form-check-input" name="force" value="true" id="force">
+                                <label class="form-check-label" for="force" th:text="#{req.forceConflict}"></label></div>
+                            <button class="btn btn-primary btn-sm w-100" th:text="#{common.save}"></button>
+                        </form>
+                    </div>
+
+                    <!-- Reception and meeting -->
+                    <form th:if="${(st == 'SCHEDULED' or st == 'APPROVED') and canReceive}" th:action="@{/requests/{id}/checkin(id=${r.id})}" method="post" class="mt-3">
+                        <div class="form-check small mb-2" th:if="${r.watchlistFlag}" sec:authorize="hasAnyRole('SECURITY','ADMIN','DIRECTOR')">
+                            <input type="checkbox" class="form-check-input" name="override" value="true" id="ovr">
+                            <label class="form-check-label" for="ovr" th:text="#{req.securityOverride}"></label></div>
+                        <button class="btn btn-accent w-100"><i class="bi bi-box-arrow-in-right"></i> <span th:text="#{action.checkIn}"></span></button>
+                    </form>
+                    <form th:if="${st == 'CHECKED_IN' and canMeet}" th:action="@{/requests/{id}/call(id=${r.id})}" method="post" class="mb-2">
+                        <button class="btn btn-accent w-100"><i class="bi bi-megaphone"></i> <span th:text="#{action.callIn}"></span></button></form>
+                    <form th:if="${(st == 'CHECKED_IN' or st == 'IN_MEETING') and canMeet}" th:action="@{/requests/{id}/complete(id=${r.id})}" method="post">
+                        <textarea name="outcome" class="form-control form-control-sm mb-2" rows="3" th:placeholder="#{req.outcomeHint}" th:text="${r.outcomeSummary}"></textarea>
+                        <button class="btn btn-primary w-100"><i class="bi bi-check2-all"></i> <span th:text="#{action.complete}"></span></button>
+                    </form>
+                    <div class="d-flex gap-2 mt-3 flex-wrap" th:if="${canSchedule or canReceive}">
+                        <form th:if="${st == 'SCHEDULED' and canReceive}" th:action="@{/requests/{id}/noshow(id=${r.id})}" method="post" th:data-confirm="#{common.areYouSure}">
+                            <button class="btn btn-ghost btn-sm text-danger"><i class="bi bi-person-x"></i> <span th:text="#{action.noShow}"></span></button></form>
+                        <form th:if="${canSchedule and st != 'IN_MEETING'}" th:action="@{/requests/{id}/cancel(id=${r.id})}" method="post" th:data-confirm="#{common.areYouSure}">
+                            <button class="btn btn-ghost btn-sm text-danger"><i class="bi bi-slash-circle"></i> <span th:text="#{action.cancel}"></span></button></form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-body">
+                    <div class="person mb-3">
+                        <img th:if="${r.visitor.photoPath}" th:src="@{/visitors/{id}/photo(id=${r.visitor.id})}" class="person-photo" alt="">
+                        <span th:unless="${r.visitor.photoPath}" class="person-photo"><i class="bi bi-person"></i></span>
+                        <div><a class="row-title" th:href="@{/visitors/{id}(id=${r.visitor.id})}" th:text="${r.visitor.fullName}"></a>
+                            <div class="row-sub"><span th:text="${r.visitor.jobTitle}"></span><span th:if="${r.visitor.organization}" th:text="${' · ' + r.visitor.organization}"></span></div></div>
+                    </div>
+                    <dl class="kv">
+                        <dt th:text="#{visitor.phone}"></dt><dd><a class="ltr" th:href="'tel:' + ${r.visitor.phone}" th:text="${r.visitor.phone}"></a></dd>
+                        <th:block th:if="${r.visitor.email}"><dt th:text="#{visitor.email}"></dt><dd><a th:href="'mailto:' + ${r.visitor.email}" th:text="${r.visitor.email}"></a></dd></th:block>
+                        <dt th:text="#{visitor.governorate}"></dt><dd><span th:text="${@labels.t(r.visitor.governorate)}"></span> <span th:text="${r.visitor.city}"></span></dd>
+                        <dt th:text="#{visitor.contactChannel}"></dt><dd><span th:text="${@labels.t(r.visitor.preferredContactChannel)}"></span> · <span th:text="${@labels.t(r.visitor.preferredLanguage)}"></span></dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head"><h3 th:text="#{req.managedBy}"></h3></div>
+                <div class="panel-body">
+                    <form th:action="@{/requests/{id}/assign(id=${r.id})}" method="post" class="d-flex gap-2">
+                        <select name="userId" class="form-select form-select-sm" th:disabled="${!canEdit}" th:attr="aria-label=#{req.managedBy}">
+                            <option value="" th:text="#{req.nobody}"></option>
+                            <option th:each="u : ${staff}" th:value="${u.id}" th:text="${u.fullName + ' · ' + @labels.t(u.role)}"
+                                    th:selected="${r.managedBy != null and r.managedBy.id == u.id}"></option></select>
+                        <button th:if="${canEdit}" class="btn btn-light btn-sm" th:text="#{common.save}"></button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="panel" th:if="${r.scheduledStart != null or r.checkInAt != null}">
+                <div class="panel-head"><h3 th:text="#{req.plannedVsActual}"></h3></div>
+                <div class="panel-body">
+                    <dl class="kv">
+                        <dt th:text="#{req.scheduled}"></dt><dd class="ltr"><span th:text="${@dates.dt(r.scheduledStart)}"></span><span th:if="${r.scheduledEnd}" th:text="${'–' + @dates.time(r.scheduledEnd)}"></span></dd>
+                        <dt th:text="#{req.checkIn}"></dt><dd><span class="ltr" th:text="${@dates.time(r.checkInAt) ?: '—'}"></span>
+                            <span th:if="${r.lateMinutes != null}" class="tag" th:classappend="${r.lateMinutes > 5} ? danger" th:text="${r.lateMinutes > 0} ? #{req.late(${r.lateMinutes})} : #{req.onTime}"></span></dd>
+                        <dt th:text="#{req.queueNo}"></dt><dd class="fw-bold" th:text="${r.queueNumber ?: '—'}"></dd>
+                        <dt th:text="#{req.lobbyWait}"></dt><dd th:text="${@dates.minutes(r.lobbyWaitMinutes)}"></dd>
+                        <dt th:text="#{req.meetingMinutes}"></dt><dd><span th:text="${@dates.minutes(r.actualMeetingMinutes)}"></span>
+                            <span th:if="${r.overrunMinutes != null and r.overrunMinutes > 0}" class="tag warn" th:text="#{req.overrun(${r.overrunMinutes})}"></span></dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="panel text-center" th:if="${qrImage}">
+                <div class="panel-body">
+                    <img th:src="${qrImage}" alt="QR" style="width:170px">
+                    <div class="small mt-2"><a th:href="${passLink}" target="_blank" th:text="#{req.openPass}"></a></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head"><h3 th:text="#{req.case}"></h3></div>
+                <div class="panel-body">
+                    <div th:if="${r.constituentCase}" class="mb-2"><a th:href="@{/cases/{id}(id=${r.constituentCase.id})}" th:text="${r.constituentCase.caseNumber + ' — ' + r.constituentCase.title}"></a></div>
+                    <form th:if="${!#lists.isEmpty(visitorCases)}" th:action="@{/requests/{id}/case(id=${r.id})}" method="post" class="d-flex gap-2 mb-2">
+                        <select name="caseId" class="form-select form-select-sm" th:attr="aria-label=#{req.case}"><option value="" th:text="#{req.noCase}"></option>
+                            <option th:each="c : ${visitorCases}" th:value="${c.id}" th:text="${c.caseNumber + ' — ' + c.title}"
+                                    th:selected="${r.constituentCase != null and r.constituentCase.id == c.id}"></option></select>
+                        <button class="btn btn-light btn-sm" th:text="#{common.save}"></button>
+                    </form>
+                    <form th:if="${r.constituentCase == null}" th:action="@{/requests/{id}/case/new(id=${r.id})}" method="post">
+                        <button class="btn btn-light btn-sm w-100"><i class="bi bi-folder-plus"></i> <span th:text="#{case.createFromVisit}"></span></button></form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.querySelectorAll('.slot-btn').forEach(function (b) {
+            b.addEventListener('click', function () { document.getElementById('schedStart').value = b.dataset.start; });
+        });
+    </script>
+</section>
+</body>
+</html>

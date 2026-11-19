@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.cases}">Cases</title></head>
+<body>
+<section>
+    <div class="page-head">
+        <div><h1 th:text="#{nav.cases}"></h1><div class="sub" th:text="#{case.help}"></div></div>
+        <form method="get"><select name="status" class="form-select" onchange="this.form.submit()" th:attr="aria-label=#{req.status}"><option value="" th:text="#{filter.anyStatus}"></option>
+            <option th:each="e : ${@labels.values('CaseStatus')}" th:value="${e}" th:text="${@labels.t(e)}" th:selected="${f_status == e}"></option></select></form>
+    </div>
+    <div class="panel">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead th:if="${!#lists.isEmpty(cases)}"><tr><th th:text="#{case.title}"></th><th th:text="#{req.visitor}"></th><th th:text="#{office.office}"></th><th th:text="#{case.visits}"></th><th th:text="#{case.assigned}"></th><th th:text="#{req.status}"></th></tr></thead>
+                <tbody>
+                <tr th:each="c : ${cases}" th:data-href="@{/cases/{id}(id=${c.id})}">
+                    <td><div class="row-title" th:text="${c.title}"></div><div class="row-sub ltr" th:text="${c.caseNumber}"></div></td>
+                    <td th:text="${c.visitor?.fullName}"></td>
+                    <td><th:block th:if="${c.office}"><span th:replace="~{fragments :: office(${c.office})}"></span></th:block></td>
+                    <td class="num" th:text="${#lists.size(c.visits)}"></td>
+                    <td class="small" th:text="${c.assignedTo?.fullName}"></td>
+                    <td><span class="tag info" th:text="${@labels.t(c.status)}"></span></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${#lists.isEmpty(cases)}" class="panel-empty"><i class="bi bi-folder2-open"></i><span th:text="#{case.none}"></span></div>
+    </div>
+</section>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.watchlist}">Watchlist</title></head>
+<body>
+<section>
+    <div class="page-head"><div><h1 th:text="#{nav.watchlist}"></h1><div class="sub" th:text="#{watch.sub}"></div></div></div>
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <form th:action="@{/watchlist}" th:object="${entry}" method="post" class="panel">
+                <div class="panel-head"><h2 th:text="#{watch.add}"></h2></div>
+                <div class="panel-body">
+                    <div class="mb-2"><label class="form-label required" th:for="fullName" th:text="#{visitor.name}"></label><input class="form-control" th:field="*{fullName}" required></div>
+                    <div class="mb-2"><label class="form-label" for="wid" th:text="#{visitor.idNumber}"></label><input class="form-control" id="wid" name="idNumber" dir="ltr">
+                        <div class="form-text" th:text="#{watch.idHashed}"></div></div>
+                    <div class="mb-2"><label class="form-label" th:for="phone" th:text="#{visitor.phone}"></label><input class="form-control" th:field="*{phone}" dir="ltr"></div>
+                    <div class="mb-2"><label class="form-label" th:for="level" th:text="#{watch.level}"></label>
+                        <select class="form-select" th:field="*{level}"><option th:each="e : ${@labels.values('WatchlistLevel')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                    <div class="mb-2"><label class="form-label required" th:for="reason" th:text="#{watch.reason}"></label><textarea class="form-control" rows="3" th:field="*{reason}" required></textarea></div>
+                </div>
+                <div class="panel-foot"><button class="btn btn-danger w-100" th:text="#{watch.addButton}"></button></div>
+            </form>
+        </div>
+        <div class="col-lg-8">
+            <div class="panel">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th th:text="#{visitor.name}"></th><th th:text="#{watch.level}"></th><th th:text="#{watch.reason}"></th><th th:text="#{common.addedBy}"></th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:each="w : ${entries}" th:style="${!w.active} ? 'opacity:.55' : ''">
+                            <td><div class="row-title" th:text="${w.fullName}"></div>
+                                <div class="row-sub ltr"><span th:text="${w.phone}"></span> <span th:if="${w.idHint}" th:text="${'…' + w.idHint}"></span></div></td>
+                            <td><span class="tag" th:classappend="${w.level.name() == 'BLOCK'} ? danger : warn" th:text="${@labels.t(w.level)}"></span>
+                                <span th:unless="${w.active}" class="tag" th:text="#{common.inactive}"></span></td>
+                            <td class="small" th:text="${w.reason}"></td>
+                            <td class="small"><span th:text="${w.addedBy?.fullName}"></span><div class="row-sub ltr" th:text="${@dates.date(w.createdAt)}"></div></td>
+                            <td><form th:action="@{/watchlist/{id}/toggle(id=${w.id})}" method="post">
+                                <button class="btn btn-light btn-sm" th:text="${w.active} ? #{common.deactivate} : #{common.activate}"></button></form></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${#lists.isEmpty(entries)}" class="panel-empty" th:text="#{common.none}"></div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

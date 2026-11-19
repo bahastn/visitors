@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="${visitor.id == null} ? #{visitor.new} : #{visitor.edit}">Visitor</title></head>
+<body>
+<section>
+    <div class="crumb"><a th:href="@{/visitors}" th:text="#{nav.visitors}"></a></div>
+    <div class="page-head"><div><h1 th:text="${visitor.id == null} ? #{visitor.new} : #{visitor.edit}"></h1>
+        <div class="sub" th:text="#{visitor.formHint}"></div></div></div>
+
+    <div th:if="${duplicates != null and !#lists.isEmpty(duplicates)}" class="alert alert-warning" style="max-width:1100px">
+        <strong><i class="bi bi-people"></i> <span th:text="#{visitor.duplicates}"></span></strong>
+        <ul class="mb-2">
+            <li th:each="d : ${duplicates}"><a th:href="@{/visitors/{id}(id=${d.id})}" th:text="${d.fullName + ' — ' + d.phone}"></a>
+                — <a th:href="@{/requests/new(visitorId=${d.id})}" th:text="#{visitor.useThis}"></a></li>
+        </ul>
+        <span class="small" th:text="#{visitor.duplicatesHint}"></span>
+    </div>
+
+    <form th:action="${visitor.id == null} ? @{/visitors} : @{/visitors/{id}(id=${visitor.id})}" th:object="${visitor}" method="post" class="panel" style="max-width:1100px" novalidate>
+        <input th:if="${next != null or param.next != null}" type="hidden" name="next" th:value="${next != null} ? ${next} : ${param.next[0]}">
+        <input th:if="${duplicates != null}" type="hidden" name="ignoreDuplicates" value="true">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger m-3" th:text="#{error.formErrors}"></div>
+
+        <div class="form-section">
+            <h3><i class="bi bi-person-vcard"></i> <span th:text="#{visitor.sectionIdentity}"></span></h3>
+            <div class="row g-3">
+                <div class="col-md-2"><label class="form-label" th:text="#{visitor.title}"></label>
+                    <input class="form-control" th:field="*{title}" th:placeholder="#{visitor.titleHint}"></div>
+                <div class="col-md-3"><label class="form-label required" th:text="#{visitor.firstName}"></label>
+                    <input class="form-control" th:field="*{firstName}" th:errorclass="is-invalid" required>
+                    <div class="invalid-feedback" th:errors="*{firstName}"></div></div>
+                <div class="col-md-2"><label class="form-label" th:text="#{visitor.fatherName}"></label><input class="form-control" th:field="*{fatherName}"></div>
+                <div class="col-md-2"><label class="form-label" th:text="#{visitor.grandfatherName}"></label><input class="form-control" th:field="*{grandfatherName}"></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.familyName}"></label><input class="form-control" th:field="*{familyName}"></div>
+                <div class="col-md-4"><label class="form-label" th:text="#{visitor.nameLatin}"></label><input class="form-control" th:field="*{nameLatin}" dir="ltr"></div>
+                <div class="col-md-2"><label class="form-label" th:text="#{visitor.gender}"></label>
+                    <select class="form-select" th:field="*{gender}"><option value="">—</option>
+                        <option th:each="e : ${@labels.values('Gender')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.dob}"></label><input type="date" class="form-control" th:field="*{dateOfBirth}"></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.nationality}"></label><input class="form-control" th:field="*{nationality}"></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.idType}"></label>
+                    <select class="form-select" th:field="*{idType}"><option value="">—</option>
+                        <option th:each="e : ${@labels.values('IdType')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.idNumber}"></label>
+                    <input class="form-control" name="idNumber" dir="ltr" autocomplete="off"
+                           th:value="${visitor.id == null} ? ${visitor.idNumber} : ''"
+                           th:placeholder="${visitor.id != null and visitor.idNumber != null} ? ${visitor.maskedIdNumber} : ''">
+                    <div class="form-text"><i class="bi bi-lock"></i> <span th:text="#{visitor.idEncrypted}"></span></div></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.idIssuePlace}"></label><input class="form-control" th:field="*{idIssuePlace}"></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.idExpiry}"></label><input type="date" class="form-control" th:field="*{idExpiryDate}"></div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="bi bi-telephone"></i> <span th:text="#{visitor.sectionContact}"></span></h3>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label required" th:text="#{visitor.phone}"></label>
+                    <input class="form-control" th:field="*{phone}" th:errorclass="is-invalid" dir="ltr" placeholder="07XX XXX XXXX" required>
+                    <div class="invalid-feedback" th:errors="*{phone}"></div></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.phone2}"></label><input class="form-control" th:field="*{phoneSecondary}" dir="ltr"></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.whatsapp}"></label><input class="form-control" th:field="*{whatsappNumber}" dir="ltr"></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.email}"></label>
+                    <input type="email" class="form-control" th:field="*{email}" th:errorclass="is-invalid" dir="ltr">
+                    <div class="invalid-feedback" th:errors="*{email}"></div></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.contactChannel}"></label>
+                    <select class="form-select" th:field="*{preferredContactChannel}">
+                        <option th:each="e : ${@labels.values('ContactChannel')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.language}"></label>
+                    <select class="form-select" th:field="*{preferredLanguage}">
+                        <option th:each="e : ${@labels.values('Language')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check"><input type="checkbox" class="form-check-input" th:field="*{consentToMessages}">
+                        <label class="form-check-label" th:for="${#ids.prev('consentToMessages')}" th:text="#{visitor.consent}"></label></div></div>
+                <div class="col-md-4"><label class="form-label" th:text="#{visitor.emergencyName}"></label><input class="form-control" th:field="*{emergencyContactName}"></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.emergencyPhone}"></label><input class="form-control" th:field="*{emergencyContactPhone}" dir="ltr"></div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="bi bi-building"></i> <span th:text="#{visitor.sectionWork}"></span></h3>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.jobTitle}"></label><input class="form-control" th:field="*{jobTitle}"></div>
+                <div class="col-md-5"><label class="form-label" th:text="#{visitor.organization}"></label><input class="form-control" th:field="*{organization}"></div>
+                <div class="col-md-4"><label class="form-label" th:text="#{visitor.orgType}"></label>
+                    <select class="form-select" th:field="*{organizationType}">
+                        <option th:each="e : ${@labels.values('OrganizationType')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="bi bi-geo-alt"></i> <span th:text="#{visitor.sectionLocation}"></span></h3>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.governorate}"></label>
+                    <select class="form-select" th:field="*{governorate}"><option value="">—</option>
+                        <option th:each="e : ${@labels.values('Governorate')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.city}"></label><input class="form-control" th:field="*{city}"></div>
+                <div class="col-md-3"><label class="form-label" th:text="#{visitor.district}"></label><input class="form-control" th:field="*{district}"></div>
+                <div class="col-md-12"><label class="form-label" th:text="#{visitor.address}"></label><input class="form-control" th:field="*{address}"></div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="bi bi-briefcase"></i> <span th:text="#{visitor.sectionOffice}"></span></h3>
+            <div class="row g-3">
+                <div class="col-md-2 d-flex align-items-end"><div class="form-check"><input type="checkbox" class="form-check-input" th:field="*{vip}">
+                    <label class="form-check-label" th:for="${#ids.prev('vip')}" th:text="#{visitor.vipLabel}">VIP</label></div></div>
+                <div class="col-md-10"><label class="form-label" th:text="#{visitor.notes}"></label><textarea class="form-control" rows="2" th:field="*{notes}"></textarea></div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button th:if="${visitor.id == null}" class="btn btn-accent" name="next" value="request"><i class="bi bi-arrow-right flip-rtl"></i> <span th:text="#{visitor.saveAndRequest}"></span></button>
+            <button class="btn btn-primary"><i class="bi bi-check2"></i> <span th:text="#{common.save}"></span></button>
+            <a th:href="${visitor.id == null} ? @{/visitors} : @{/visitors/{id}(id=${visitor.id})}" class="btn btn-light" th:text="#{common.cancel}"></a>
+        </div>
+    </form>
+</section>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="${visitRequest.id == null} ? #{nav.newRequest} : #{req.edit}">Request</title></head>
+<body>
+<section>
+    <div class="crumb"><a th:href="@{/requests}" th:text="#{nav.requests}"></a></div>
+    <div class="page-head">
+        <div>
+            <h1 th:text="${visitRequest.id == null} ? #{nav.newRequest} : #{req.edit}"></h1>
+            <div class="sub"><i class="bi bi-person"></i> <a th:href="@{/visitors/{id}(id=${visitor.id})}" th:text="${visitor.fullName}"></a>
+                · <span class="ltr" th:text="${visitor.phone}"></span><span th:if="${visitor.organization}" th:text="${' · ' + visitor.organization}"></span></div>
+        </div>
+    </div>
+
+    <form th:action="${visitRequest.id == null} ? @{/requests} : @{/requests/{id}(id=${visitRequest.id})}" th:object="${visitRequest}"
+          method="post" enctype="multipart/form-data" class="panel" style="max-width:1100px">
+        <input type="hidden" name="visitorId" th:value="${visitor.id}">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger m-3" th:text="#{error.formErrors}"></div>
+
+        <div class="form-section">
+            <h3><i class="bi bi-building"></i> <span th:text="#{req.whichOffice}"></span></h3>
+            <div class="row g-3">
+                <div class="col-md-6" th:if="${visitRequest.id == null}">
+                    <label class="form-label required" for="officeId" th:text="#{office.office}"></label>
+                    <select class="form-select" id="officeId" name="officeId" required
+                            th:data-base="@{/requests/new(visitorId=${visitor.id})}" onchange="location = this.dataset.base + '&officeId=' + this.value">
+                        <option th:each="o : ${offices}" th:value="${o.id}" th:text="${o.name}" th:selected="${office != null and office.id == o.id}"></option>
+                    </select>
+                    <div class="form-text" th:if="${office != null}"><span th:text="#{req.meetingWith}"></span>: <b th:text="${office.hostTitle}"></b></div>
+                </div>
+                <div class="col-md-6" th:if="${visitRequest.id != null}">
+                    <label class="form-label" th:text="#{office.office}"></label>
+                    <div class="form-control bg-light" th:text="${visitRequest.office.name}"></div>
+                </div>
+                <div class="col-md-6"><label class="form-label" for="managedById" th:text="#{req.managedBy}"></label>
+                    <select class="form-select" id="managedById" name="managedById">
+                        <option value="" th:text="#{req.nobody}"></option>
+                        <option th:each="u : ${staff}" th:value="${u.id}" th:text="${u.fullName + ' · ' + @labels.t(u.role)}"
+                                th:selected="${visitRequest.managedBy != null and visitRequest.managedBy.id == u.id}"></option></select></div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="bi bi-card-text"></i> <span th:text="#{req.sectionDetails}"></span></h3>
+            <div class="row g-3">
+                <div class="col-md-12"><label class="form-label required" for="subject" th:text="#{req.subject}"></label>
+                    <input class="form-control" th:field="*{subject}" th:errorclass="is-invalid" required maxlength="250">
+                    <div class="invalid-feedback" th:errors="*{subject}"></div></div>
+                <div class="col-md-4"><label class="form-label" th:for="purpose" th:text="#{req.purpose}"></label>
+                    <select class="form-select" th:field="*{purpose}"><option th:each="e : ${@labels.values('VisitPurpose')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                <div class="col-md-4"><label class="form-label" th:for="priority" th:text="#{req.priority}"></label>
+                    <select class="form-select" th:field="*{priority}"><option th:each="e : ${@labels.values('Priority')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                <div class="col-md-4"><label class="form-label" th:for="channel" th:text="#{req.channel}"></label>
+                    <select class="form-select" th:field="*{channel}"><option th:each="e : ${@labels.values('RequestChannel')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                <div class="col-md-12"><label class="form-label" th:for="description" th:text="#{req.description}"></label>
+                    <textarea class="form-control" rows="4" th:field="*{description}"></textarea></div>
+                <div class="col-md-6"><label class="form-label" th:for="referredByPerson" th:text="#{req.referredByPerson}"></label>
+                    <input class="form-control" th:field="*{referredByPerson}" th:placeholder="#{req.referredByHint}"></div>
+                <div class="col-md-6" th:if="${!#lists.isEmpty(openCases)}"><label class="form-label" for="caseId" th:text="#{req.linkCase}"></label>
+                    <select class="form-select" id="caseId" name="caseId"><option value="" th:text="#{req.noCase}"></option>
+                        <option th:each="c : ${openCases}" th:value="${c.id}" th:text="${c.caseNumber + ' — ' + c.title}"></option></select></div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="bi bi-calendar-event"></i> <span th:text="#{req.sectionMeeting}"></span></h3>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label" th:for="preferredDate" th:text="#{req.preferredDate}"></label><input type="date" class="form-control" th:field="*{preferredDate}"></div>
+                <div class="col-md-3"><label class="form-label" th:for="preferredTime" th:text="#{req.preferredTime}"></label><input class="form-control" th:field="*{preferredTime}" th:placeholder="#{req.preferredTimeHint}"></div>
+                <div class="col-md-3"><label class="form-label" th:for="durationMinutes" th:text="#{req.duration}"></label>
+                    <select class="form-select" th:field="*{durationMinutes}">
+                        <option th:each="m : ${ {15,30,45,60,90,120} }" th:value="${m}" th:text="#{common.nMinutes(${m})}"></option></select></div>
+                <div class="col-md-3"><label class="form-label" th:for="expectedAttendees" th:text="#{req.attendees}"></label><input type="number" min="1" max="100" class="form-control" th:field="*{expectedAttendees}"></div>
+                <div class="col-md-6"><label class="form-label" th:for="meetingWith" th:text="#{req.meetingWith}"></label><input class="form-control" th:field="*{meetingWith}" th:placeholder="${office != null} ? ${office.hostTitle} : ''"></div>
+                <div class="col-md-6"><label class="form-label" th:for="location" th:text="#{req.location}"></label><input class="form-control" th:field="*{location}"></div>
+                <div class="col-md-4"><label class="form-label" th:for="vehiclePlate" th:text="#{req.vehiclePlate}"></label><input class="form-control" th:field="*{vehiclePlate}" dir="ltr"></div>
+                <div class="col-md-5"><label class="form-label" th:for="accessibilityNeeds" th:text="#{req.accessibility}"></label><input class="form-control" th:field="*{accessibilityNeeds}"></div>
+                <div class="col-md-3 d-flex align-items-end"><div class="form-check mb-2"><input type="checkbox" class="form-check-input" th:field="*{needsInterpreter}">
+                    <label class="form-check-label" th:for="${#ids.prev('needsInterpreter')}" th:text="#{req.interpreter}"></label></div></div>
+            </div>
+        </div>
+
+        <div class="form-section" th:if="${visitRequest.id == null}">
+            <h3><i class="bi bi-paperclip"></i> <span th:text="#{req.attachments}"></span></h3>
+            <input type="file" name="files" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt,.tif,.tiff,.heic,.webp" th:attr="aria-label=#{req.attachments}">
+            <div class="form-text" th:text="#{req.attachHint}"></div>
+            <div class="form-text mb-3" th:text="#{req.membersLater}"></div>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn btn-primary"><i class="bi bi-check2"></i> <span th:text="${visitRequest.id == null} ? #{req.create} : #{common.save}"></span></button>
+            <a th:href="${visitRequest.id == null} ? @{/visitors/{id}(id=${visitor.id})} : @{/requests/{id}(id=${visitRequest.id})}" class="btn btn-light" th:text="#{common.cancel}"></a>
+        </div>
+    </form>
+</section>
+</body>
+</html>

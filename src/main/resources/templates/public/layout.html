@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html th:fragment="page(title, content)" xmlns:th="http://www.thymeleaf.org" th:lang="${lang}" th:dir="${rtl} ? 'rtl' : 'ltr'">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#001d3d">
+    <link rel="icon" th:href="@{/img/logo-64.png}" type="image/png">
+    <title th:replace="${title}">Public</title>
+    <link rel="stylesheet" th:href="${rtl} ? @{/vendor/bootstrap/bootstrap.rtl.min.css} : @{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap-icons/bootstrap-icons.min.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="public-body">
+<header class="public-top">
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2 py-3" style="max-width:920px">
+        <a class="d-flex align-items-center gap-2 text-decoration-none" th:href="@{/public/request}">
+            <img class="o-logo" th:src="@{/img/logo-64.png}" alt="" width="40" height="40">
+            <span><span class="d-block fw-bold" th:text="${@settings.orgName()}"></span>
+                <small style="color:#a9bdd1" th:text="#{public.portal}">Visitor portal</small></span>
+        </a>
+        <nav class="lang-switch" th:attr="aria-label=#{common.language}">
+            <a th:href="@{${requestUri}(lang='ckb')}" th:classappend="${lang == 'ckb'} ? active" lang="ckb">کوردی</a>
+            <a th:href="@{${requestUri}(lang='ar')}" th:classappend="${lang == 'ar'} ? active" lang="ar">العربية</a>
+            <a th:href="@{${requestUri}(lang='en')}" th:classappend="${lang == 'en'} ? active" lang="en">English</a>
+        </nav>
+    </div>
+    <div class="container pb-2" style="max-width:920px">
+        <nav class="public-tabs">
+            <a th:href="@{/public/request}" th:classappend="${#strings.startsWith(requestUri, '/public/request')} ? active"><i class="bi bi-send"></i> <span th:text="#{nav.publicForm}"></span></a>
+            <a th:href="@{/public/track}" th:classappend="${#strings.startsWith(requestUri, '/public/track')} ? active"><i class="bi bi-search"></i> <span th:text="#{public.trackTitle}"></span></a>
+        </nav>
+    </div>
+</header>
+<main class="container py-4" style="max-width:920px">
+    <div th:replace="${content}"></div>
+</main>
+<footer class="text-center small-muted pb-4" th:text="${@settings.orgName()}"></footer>
+</body>
+</html>

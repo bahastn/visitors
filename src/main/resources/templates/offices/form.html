@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="${o.id == null} ? #{office.add} : ${o.name}">Office</title></head>
+<body>
+<section>
+    <div class="crumb"><a th:href="@{/offices}" th:text="#{nav.offices}"></a></div>
+    <div class="page-head"><div><h1 th:text="${o.id == null} ? #{office.add} : ${o.name}"></h1>
+        <div class="sub" th:if="${o.id != null}"><span class="ltr" th:text="${o.code}"></span> · <span th:text="${@labels.t(o.type)}"></span></div></div></div>
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <form th:action="@{/offices/save}" method="post" class="panel">
+                <input type="hidden" name="id" th:value="${o.id}">
+                <div class="form-section">
+                    <h3><i class="bi bi-building"></i> <span th:text="#{office.identity}"></span></h3>
+                    <div class="row g-3">
+                        <div class="col-md-4"><label class="form-label required" for="nameCkb" th:text="#{office.nameCkb}"></label><input id="nameCkb" name="nameCkb" class="form-control" dir="rtl" th:value="${o.nameCkb}" required></div>
+                        <div class="col-md-4"><label class="form-label" for="nameAr" th:text="#{office.nameAr}"></label><input id="nameAr" name="nameAr" class="form-control" dir="rtl" th:value="${o.nameAr}"></div>
+                        <div class="col-md-4"><label class="form-label" for="nameEn" th:text="#{office.nameEn}"></label><input id="nameEn" name="nameEn" class="form-control" dir="ltr" th:value="${o.nameEn}"></div>
+                        <th:block th:if="${isAdmin}">
+                            <div class="col-md-3"><label class="form-label required" for="code" th:text="#{office.code}"></label><input id="code" name="code" class="form-control" dir="ltr" th:value="${o.code}" required pattern="[A-Za-z0-9]{2,12}"></div>
+                            <div class="col-md-3"><label class="form-label" for="type" th:text="#{office.type}"></label>
+                                <select id="type" name="type" class="form-select"><option th:each="e : ${@labels.values('OfficeType')}" th:value="${e}" th:text="${@labels.t(e)}" th:selected="${o.type == e}"></option></select></div>
+                            <div class="col-md-4"><label class="form-label" for="parentId" th:text="#{office.parent}"></label>
+                                <select id="parentId" name="parentId" class="form-select"><option value="" th:text="#{common.none}"></option>
+                                    <option th:each="p : ${parents}" th:value="${p.id}" th:text="${p.name}" th:selected="${o.parent != null and o.parent.id == p.id}"></option></select></div>
+                            <div class="col-md-2"><label class="form-label" for="sortOrder" th:text="#{office.sortOrder}"></label><input id="sortOrder" type="number" name="sortOrder" class="form-control" th:value="${o.sortOrder}"></div>
+                        </th:block>
+                        <div class="col-md-3"><label class="form-label" for="color" th:text="#{office.color}"></label>
+                            <input id="color" type="color" name="color" class="form-control form-control-color w-100" th:value="${o.color}"></div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h3><i class="bi bi-person-badge"></i> <span th:text="#{office.host}"></span></h3>
+                    <div class="row g-3">
+                        <div class="col-md-4"><label class="form-label" for="h1" th:text="#{office.hostCkb}"></label><input id="h1" name="hostTitleCkb" class="form-control" dir="rtl" th:value="${o.hostTitleCkb}"></div>
+                        <div class="col-md-4"><label class="form-label" for="h2" th:text="#{office.hostAr}"></label><input id="h2" name="hostTitleAr" class="form-control" dir="rtl" th:value="${o.hostTitleAr}"></div>
+                        <div class="col-md-4"><label class="form-label" for="h3" th:text="#{office.hostEn}"></label><input id="h3" name="hostTitleEn" class="form-control" dir="ltr" th:value="${o.hostTitleEn}"></div>
+                        <div class="col-md-6"><label class="form-label" for="hostName" th:text="#{office.hostName}"></label><input id="hostName" name="hostName" class="form-control" th:value="${o.hostName}"></div>
+                        <div class="col-md-6"><label class="form-label" for="loc" th:text="#{office.defaultLocation}"></label><input id="loc" name="defaultLocation" class="form-control" th:value="${o.defaultLocation}"></div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h3><i class="bi bi-clock"></i> <span th:text="#{office.rules}"></span></h3>
+                    <div class="row g-3">
+                        <div class="col-md-3"><label class="form-label" for="ws" th:text="#{set.workStart}"></label><input id="ws" type="time" name="workStart" class="form-control" th:value="${o.workStart}"></div>
+                        <div class="col-md-3"><label class="form-label" for="we" th:text="#{set.workEnd}"></label><input id="we" type="time" name="workEnd" class="form-control" th:value="${o.workEnd}"></div>
+                        <div class="col-md-3"><label class="form-label" for="dd" th:text="#{set.defaultDuration}"></label>
+                            <select id="dd" name="defaultDuration" class="form-select"><option th:each="m : ${ {15,30,45,60} }" th:value="${m}" th:text="#{common.nMinutes(${m})}" th:selected="${o.defaultDuration == m}"></option></select></div>
+                        <div class="col-md-3"><label class="form-label" for="od" th:text="#{set.overdueDays}"></label><input id="od" type="number" min="1" name="overdueDays" class="form-control" th:value="${o.overdueDays}"></div>
+                        <div class="col-12"><label class="form-label" th:text="#{set.workDays}"></label>
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check" th:each="d : ${ {'SATURDAY','SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY'} }">
+                                    <input type="checkbox" class="form-check-input" th:name="${'day_' + d}" th:id="${'d' + d}" th:checked="${o.workDays != null and #strings.contains(o.workDays, d)}">
+                                    <label class="form-check-label" th:for="${'d' + d}" th:text="${@dates.dayNameOf(d)}"></label></div>
+                            </div></div>
+                        <div class="col-md-6"><label class="form-label" for="al" th:text="#{set.approvalLevels}"></label>
+                            <select id="al" name="approvalLevels" class="form-select">
+                                <option value="1" th:selected="${o.approvalLevels == 1}" th:text="#{set.oneLevel}"></option>
+                                <option value="2" th:selected="${o.approvalLevels == 2}" th:text="#{set.twoLevels}"></option></select></div>
+                        <div class="col-md-6 d-flex flex-column justify-content-end gap-1">
+                            <div class="form-check form-switch"><input type="checkbox" class="form-check-input" name="acceptsPublicRequests" value="true" id="apr" th:checked="${o.acceptsPublicRequests}">
+                                <label class="form-check-label" for="apr" th:text="#{office.publicRequests}"></label></div>
+                            <th:block th:if="${isAdmin}">
+                                <div class="form-check form-switch"><input type="checkbox" class="form-check-input" name="external" value="true" id="ext" th:checked="${o.external}">
+                                    <label class="form-check-label" for="ext" th:text="#{office.external}"></label></div>
+                                <div class="form-check form-switch" th:if="${o.id != null}"><input type="checkbox" class="form-check-input" name="active" value="true" id="act" th:checked="${o.active}">
+                                    <label class="form-check-label" for="act" th:text="#{common.active}"></label></div>
+                            </th:block>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h3><i class="bi bi-telephone"></i> <span th:text="#{office.contact}"></span></h3>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4"><label class="form-label" for="cp" th:text="#{office.person}"></label><input id="cp" name="contactPerson" class="form-control" th:value="${o.contactPerson}"></div>
+                        <div class="col-md-4"><label class="form-label" for="ce" th:text="#{visitor.email}"></label><input id="ce" type="email" name="contactEmail" class="form-control" dir="ltr" th:value="${o.contactEmail}"></div>
+                        <div class="col-md-4"><label class="form-label" for="cph" th:text="#{visitor.phone}"></label><input id="cph" name="contactPhone" class="form-control" dir="ltr" th:value="${o.contactPhone}"></div>
+                        <div class="col-12" th:if="${isAdmin}"><label class="form-label" for="ep" th:text="#{office.endpoint}"></label><input id="ep" name="endpointUrl" class="form-control" dir="ltr" th:value="${o.endpointUrl}" placeholder="https://"></div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-primary" th:text="#{common.save}"></button>
+                    <a th:href="@{/offices}" class="btn btn-light" th:text="#{common.cancel}"></a>
+                </div>
+            </form>
+        </div>
+        <div class="col-xl-4" th:if="${o.id != null}">
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{office.staff}"></h2><a th:if="${isAdmin}" class="link" th:href="@{/users(office=${o.id})}" th:text="#{common.manage}"></a></div>
+                <ul class="list" th:if="${staff != null and !#lists.isEmpty(staff)}">
+                    <li th:each="u : ${staff}"><span class="avatar" th:text="${#strings.substring(u.fullName, 0, 1)}"></span>
+                        <div class="grow"><div class="row-title" th:text="${u.fullName}"></div><div class="row-sub" th:text="${@labels.t(u.role)}"></div></div></li>
+                </ul>
+                <div th:if="${staff == null or #lists.isEmpty(staff)}" class="panel-empty" th:text="#{common.none}"></div>
+            </div>
+            <div class="panel" th:if="${isAdmin}">
+                <div class="panel-head"><h2 th:text="#{office.apiKey}"></h2></div>
+                <div class="panel-body">
+                    <p class="small-muted" th:text="#{office.apiHint}"></p>
+                    <div class="tag ltr mb-2" th:text="${o.apiKey != null} ? ${#strings.abbreviate(o.apiKey, 14)} : '—'"></div>
+                    <form th:action="@{/offices/{id}/api-key(id=${o.id})}" method="post" th:data-confirm="#{common.areYouSure}">
+                        <button class="btn btn-light btn-sm w-100" th:text="#{office.newKey}"></button></form>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-body small">
+                    <div class="mb-1"><b th:text="#{nav.lobbyScreen}"></b></div>
+                    <a class="ltr" th:href="@{/public/lobby(office=${o.code})}" target="_blank" th:text="${'/public/lobby?office=' + o.code}"></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

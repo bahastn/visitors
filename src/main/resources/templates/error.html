@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${#locale.language}"
+      th:dir="${#locale.language == 'ar' or #locale.language == 'ckb'} ? 'rtl' : 'ltr'"
+      th:with="isRtl=${#locale.language == 'ar' or #locale.language == 'ckb'}"
+      th:attr="data-theme=${@settings.theme()}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#714B67">
+    <title th:text="${status}">Error</title>
+    <link rel="icon" th:href="@{/img/logo-64.png}" type="image/png">
+    <link rel="apple-touch-icon" th:href="@{/img/logo-192.png}">
+    <link rel="stylesheet" th:href="${isRtl} ? @{/vendor/bootstrap/bootstrap.rtl.min.css} : @{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap-icons/bootstrap-icons.min.css}">
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        .o-auth { min-block-size: 100vh; display: flex; flex-direction: column; background: var(--canvas, #F5F5F7); }
+        .o-auth-bar { block-size: 48px; display: flex; align-items: center; gap: 8px; padding-inline: 16px;
+            background: var(--brand, #714B67); color: #fff; font-weight: 600; }
+        .o-auth-bar img { inline-size: 36px; block-size: 36px; border-radius: 6px; background: #fff; padding: 2px; object-fit: contain; }
+        .o-auth-main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+        .o-auth-card { inline-size: 100%; max-inline-size: 420px; background: var(--surface, #fff); text-align: center;
+            border: 1px solid var(--border, #E2E4E8); border-radius: 6px; padding: 24px; }
+        .o-auth-code { font-size: 22px; font-weight: 600; color: var(--brand, #714B67); }
+        .o-auth-card p { color: var(--text, #1F2328); margin-block: 8px 16px; }
+    </style>
+</head>
+<body>
+<div class="o-auth">
+    <header class="o-auth-bar">
+        <img class="o-logo" th:src="@{/img/logo-64.png}" th:alt="${@settings.orgName()}" width="40" height="40">
+        <span th:text="${@settings.orgName()}"></span>
+    </header>
+    <main class="o-auth-main">
+        <div class="o-auth-card">
+            <div class="o-auth-code" th:text="${status}">500</div>
+            <p th:text="${status == 404} ? #{error.page404} : (${status == 403} ? #{error.page403} : #{error.page500})"></p>
+            <a th:href="@{/}" class="btn btn-primary" th:text="#{error.home}">Home</a>
+        </div>
+    </main>
+</div>
+</body>
+</html>

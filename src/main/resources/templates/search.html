@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{common.search}">Search</title></head>
+<body>
+<section>
+    <div class="page-head"><div><h1 th:text="#{search.title}"></h1></div></div>
+    <form th:action="@{/search}" method="get" class="mb-3" style="max-width:640px">
+        <div class="input-group"><input name="q" class="form-control form-control-lg" th:value="${q}" th:placeholder="#{search.placeholder}" autofocus th:attr="aria-label=#{common.search}">
+            <button class="btn btn-primary"><i class="bi bi-search"></i></button></div>
+    </form>
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{nav.requests}"></h2><span class="small-muted" th:text="${#lists.size(requests)}"></span></div>
+                <ul class="list" th:if="${!#lists.isEmpty(requests)}">
+                    <li th:each="r : ${requests}">
+                        <div class="grow"><a class="row-title" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.visitor.fullName}"></a>
+                            <div class="row-sub truncate"><span class="ltr" th:text="${r.referenceNumber}"></span> · <span th:text="${r.subject}"></span></div></div>
+                        <span th:replace="~{fragments :: office(${r.office})}"></span>
+                        <span th:replace="~{fragments :: status(${r.status})}"></span>
+                    </li>
+                </ul>
+                <div th:if="${#lists.isEmpty(requests)}" class="panel-empty" th:text="#{common.noResults}"></div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{nav.visitors}"></h2><span class="small-muted" th:text="${#lists.size(visitors)}"></span></div>
+                <ul class="list" th:if="${!#lists.isEmpty(visitors)}">
+                    <li th:each="v : ${visitors}">
+                        <div class="grow"><a class="row-title" th:href="@{/visitors/{id}(id=${v.id})}" th:text="${v.fullName}"></a>
+                            <div class="row-sub"><span class="ltr" th:text="${v.phone}"></span><span th:if="${v.organization}" th:text="${' · ' + v.organization}"></span></div></div>
+                    </li>
+                </ul>
+                <div th:if="${#lists.isEmpty(visitors)}" class="panel-empty" th:text="#{common.noResults}"></div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

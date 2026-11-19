@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="${u.id == null} ? #{user.new} : #{user.edit}">User</title></head>
+<body>
+<section>
+    <div class="crumb"><a th:href="@{/users}" th:text="#{nav.users}"></a></div>
+    <div class="page-head"><div><h1 th:text="${u.id == null} ? #{user.new} : #{user.edit}"></h1></div>
+        <form th:if="${u.id != null and u.totpEnabled}" th:action="@{/users/{id}/reset-2fa(id=${u.id})}" method="post" th:data-confirm="#{common.areYouSure}">
+            <button class="btn btn-light"><i class="bi bi-shield-x"></i> <span th:text="#{user.reset2fa}"></span></button></form></div>
+    <form th:action="@{/users/save}" method="post" class="panel" style="max-width:900px">
+        <input type="hidden" name="id" th:value="${u.id}">
+        <div class="form-section">
+            <h3><i class="bi bi-person"></i> <span th:text="#{user.account}"></span></h3>
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label required" for="fullName" th:text="#{user.fullName}"></label><input id="fullName" name="fullName" class="form-control" th:value="${u.fullName}" required></div>
+                <div class="col-md-6"><label class="form-label" for="jobTitle" th:text="#{visitor.jobTitle}"></label><input id="jobTitle" name="jobTitle" class="form-control" th:value="${u.jobTitle}"></div>
+                <div class="col-md-4"><label class="form-label required" for="username" th:text="#{login.username}"></label><input id="username" name="username" class="form-control" dir="ltr" th:value="${u.username}" required pattern="[a-zA-Z0-9._\-]{3,60}"></div>
+                <div class="col-md-4"><label class="form-label" for="email" th:text="#{visitor.email}"></label><input type="email" id="email" name="email" class="form-control" dir="ltr" th:value="${u.email}"></div>
+                <div class="col-md-4"><label class="form-label" for="phone" th:text="#{visitor.phone}"></label><input id="phone" name="phone" class="form-control" dir="ltr" th:value="${u.phone}"></div>
+                <div class="col-md-4"><label class="form-label" for="lang" th:text="#{visitor.language}"></label>
+                    <select id="lang" name="preferredLanguage" class="form-select">
+                        <option value="ckb" th:selected="${u.preferredLanguage == 'ckb'}">کوردی</option>
+                        <option value="ar" th:selected="${u.preferredLanguage == 'ar'}">العربية</option>
+                        <option value="en" th:selected="${u.preferredLanguage == 'en'}">English</option></select></div>
+                <div class="col-md-5"><label class="form-label" th:classappend="${u.id == null} ? required" for="password" th:text="${u.id == null} ? #{login.password} : #{user.newPassword}"></label>
+                    <input type="password" id="password" name="password" class="form-control" dir="ltr" minlength="8" th:required="${u.id == null}" autocomplete="new-password">
+                    <div class="form-text" th:text="#{user.passwordHint}"></div></div>
+                <div class="col-md-3 d-flex align-items-end" th:if="${u.id != null}">
+                    <div class="form-check form-switch mb-2"><input type="checkbox" class="form-check-input" name="enabled" value="true" id="en" th:checked="${u.enabled}">
+                        <label class="form-check-label" for="en" th:text="#{common.active}"></label></div></div>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="bi bi-building"></i> <span th:text="#{user.roleAndOffices}"></span></h3>
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label required" for="role" th:text="#{user.role}"></label>
+                    <select id="role" name="role" class="form-select"><option th:each="r : ${@labels.values('Role')}" th:value="${r}" th:text="${@labels.t(r)}" th:selected="${u.role == r}"></option></select></div>
+                <div class="col-md-6"><label class="form-label" for="officeId" th:text="#{user.mainOffice}"></label>
+                    <select id="officeId" name="officeId" class="form-select"><option value="" th:text="#{common.none}"></option>
+                        <option th:each="o : ${offices}" th:value="${o.id}" th:text="${o.name}" th:selected="${u.office != null and u.office.id == o.id}"></option></select></div>
+                <div class="col-12">
+                    <div class="form-check form-switch"><input type="checkbox" class="form-check-input" name="allOffices" value="true" id="all" th:checked="${u.allOffices}">
+                        <label class="form-check-label" for="all" th:text="#{user.allOffices}"></label></div>
+                    <div class="form-text" th:text="#{user.allOfficesHint}"></div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" th:text="#{user.extraOffices}"></label>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check" th:each="o : ${offices}">
+                            <input type="checkbox" class="form-check-input" name="extraOfficeIds" th:value="${o.id}" th:id="${'xo' + o.id}"
+                                   th:checked="${#lists.contains(u.extraOffices.![id], o.id)}">
+                            <label class="form-check-label" th:for="${'xo' + o.id}" th:text="${o.name}"></label></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary" th:text="#{common.save}"></button>
+            <a th:href="@{/users}" class="btn btn-light" th:text="#{common.cancel}"></a>
+        </div>
+    </form>
+</section>
+</body>
+</html>

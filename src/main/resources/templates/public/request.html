@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{public/layout :: page(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.publicForm}">Request a visit</title></head>
+<body>
+<section>
+    <div class="page-head"><div><h1 th:text="#{public.requestTitle}"></h1><div class="sub" th:text="#{public.requestIntro}"></div></div></div>
+    <form th:action="@{/public/request}" th:object="${visitor}" method="post" enctype="multipart/form-data">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger small">
+            <div th:text="#{error.formErrors}"></div>
+            <ul class="mb-0"><li th:each="e : ${#fields.allErrors()}" th:text="${e}"></li></ul></div>
+        <div th:if="${captchaError}" class="alert alert-danger small" th:text="#{public.captchaError}"></div>
+        <div th:if="${officeError}" class="alert alert-danger small" th:text="#{public.officeError}"></div>
+        <div style="position:absolute;inset-inline-start:-9999px" aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off"></div>
+
+        <div class="panel form-section">
+            <div class="panel-head"><h2><span class="step-no">1</span> <span th:text="#{public.chooseOffice}"></span></h2></div>
+            <div class="panel-body">
+                <div class="office-pick">
+                    <label th:each="o : ${offices}" class="office-option">
+                        <input type="radio" name="officeId" th:value="${o.id}" required
+                               th:checked="${f_office == o.id or (f_office == null and #lists.size(offices) == 1)}">
+                        <span class="office-option-body" th:style="'--oc:' + ${o.color}">
+                            <b th:text="${o.name}"></b>
+                            <small class="small-muted" th:text="${o.hostTitle}"></small>
+                        </span>
+                    </label>
+                </div>
+                <div th:if="${#lists.isEmpty(offices)}" class="small-muted" th:text="#{public.closed}"></div>
+            </div>
+        </div>
+
+        <div class="panel form-section">
+            <div class="panel-head"><h2><span class="step-no">2</span> <span th:text="#{public.yourDetails}"></span></h2></div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-3"><label class="form-label required" for="fn" th:text="#{visitor.firstName}"></label>
+                        <input id="fn" class="form-control" th:field="*{firstName}" th:errorclass="is-invalid" required></div>
+                    <div class="col-md-3"><label class="form-label" for="fa" th:text="#{visitor.fatherName}"></label><input id="fa" class="form-control" th:field="*{fatherName}"></div>
+                    <div class="col-md-3"><label class="form-label" for="gf" th:text="#{visitor.grandfatherName}"></label><input id="gf" class="form-control" th:field="*{grandfatherName}"></div>
+                    <div class="col-md-3"><label class="form-label" for="fm" th:text="#{visitor.familyName}"></label><input id="fm" class="form-control" th:field="*{familyName}"></div>
+                    <div class="col-md-4"><label class="form-label required" for="ph" th:text="#{visitor.phone}"></label>
+                        <input id="ph" class="form-control" th:field="*{phone}" th:errorclass="is-invalid" dir="ltr" placeholder="07XX XXX XXXX" inputmode="tel" required>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div></div>
+                    <div class="col-md-4"><label class="form-label" for="wa" th:text="#{visitor.whatsapp}"></label><input id="wa" class="form-control" th:field="*{whatsappNumber}" dir="ltr" inputmode="tel"></div>
+                    <div class="col-md-4"><label class="form-label" for="em" th:text="#{visitor.email}"></label><input id="em" type="email" class="form-control" th:field="*{email}" th:errorclass="is-invalid" dir="ltr">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div></div>
+                    <div class="col-md-6"><label class="form-label" for="cc" th:text="#{visitor.contactChannel}"></label>
+                        <select id="cc" class="form-select" th:field="*{preferredContactChannel}">
+                            <option th:each="e : ${@labels.values('ContactChannel')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                    <div class="col-md-6"><label class="form-label" for="pl" th:text="#{visitor.language}"></label>
+                        <select id="pl" class="form-select" th:field="*{preferredLanguage}">
+                            <option th:each="e : ${@labels.values('Language')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                </div>
+                <details class="mt-3">
+                    <summary class="small fw-semibold" th:text="#{public.moreDetails}">More details (optional)</summary>
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-3"><label class="form-label" for="gd" th:text="#{visitor.gender}"></label>
+                            <select id="gd" class="form-select" th:field="*{gender}"><option value="">—</option>
+                                <option th:each="e : ${@labels.values('Gender')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                        <div class="col-md-3"><label class="form-label" for="db" th:text="#{visitor.dob}"></label><input id="db" type="date" class="form-control" th:field="*{dateOfBirth}"></div>
+                        <div class="col-md-3"><label class="form-label" for="it" th:text="#{visitor.idType}"></label>
+                            <select id="it" class="form-select" th:field="*{idType}"><option value="">—</option>
+                                <option th:each="e : ${@labels.values('IdType')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                        <div class="col-md-3"><label class="form-label" for="in" th:text="#{visitor.idNumber}"></label><input id="in" class="form-control" th:field="*{idNumber}" dir="ltr" autocomplete="off"></div>
+                        <div class="col-md-4"><label class="form-label" for="jt" th:text="#{visitor.jobTitle}"></label><input id="jt" class="form-control" th:field="*{jobTitle}"></div>
+                        <div class="col-md-4"><label class="form-label" for="or" th:text="#{visitor.organization}"></label><input id="or" class="form-control" th:field="*{organization}"></div>
+                        <div class="col-md-4"><label class="form-label" for="ot" th:text="#{visitor.orgType}"></label>
+                            <select id="ot" class="form-select" th:field="*{organizationType}">
+                                <option th:each="e : ${@labels.values('OrganizationType')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                        <div class="col-md-4"><label class="form-label" for="gv" th:text="#{visitor.governorate}"></label>
+                            <select id="gv" class="form-select" th:field="*{governorate}"><option value="">—</option>
+                                <option th:each="e : ${@labels.values('Governorate')}" th:value="${e}" th:text="${@labels.t(e)}"></option></select></div>
+                        <div class="col-md-4"><label class="form-label" for="ct" th:text="#{visitor.city}"></label><input id="ct" class="form-control" th:field="*{city}"></div>
+                        <div class="col-md-4"><label class="form-label" for="ds" th:text="#{visitor.district}"></label><input id="ds" class="form-control" th:field="*{district}"></div>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <div class="panel form-section">
+            <div class="panel-head"><h2><span class="step-no">3</span> <span th:text="#{public.yourRequest}"></span></h2></div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-8"><label class="form-label" for="pu" th:text="#{req.purpose}"></label>
+                        <select id="pu" class="form-select" name="purpose">
+                            <option th:each="e : ${@labels.values('VisitPurpose')}" th:value="${e}" th:text="${@labels.t(e)}" th:selected="${f_purpose == e}"></option></select></div>
+                    <div class="col-md-4"><label class="form-label" for="at" th:text="#{req.attendees}"></label><input id="at" type="number" min="1" max="50" value="1" name="expectedAttendees" class="form-control"></div>
+                    <div class="col-12"><label class="form-label required" for="sb" th:text="#{req.subject}"></label><input id="sb" name="subject" class="form-control" required maxlength="250" th:value="${f_subject}"></div>
+                    <div class="col-12"><label class="form-label" for="de" th:text="#{req.description}"></label><textarea id="de" name="description" class="form-control" rows="4" th:text="${f_description}"></textarea></div>
+                    <div class="col-md-4"><label class="form-label" for="pd" th:text="#{req.preferredDate}"></label><input id="pd" type="date" name="preferredDate" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label" for="pt" th:text="#{req.preferredTime}"></label><input id="pt" name="preferredTime" class="form-control" th:placeholder="#{req.preferredTimeHint}"></div>
+                    <div class="col-md-4"><label class="form-label" for="fl" th:text="#{public.document}"></label><input id="fl" type="file" name="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-body d-flex flex-wrap gap-3 align-items-end justify-content-between">
+                <div style="min-width:220px"><label class="form-label required" for="cp"><span th:text="#{public.captcha}"></span> <b dir="ltr" th:text="${captchaQuestion}"></b></label>
+                    <input id="cp" name="captcha" class="form-control" inputmode="numeric" required dir="ltr" autocomplete="off"></div>
+                <div class="small-muted flex-fill" style="max-width:46ch" th:text="#{public.privacy}"></div>
+                <button class="btn btn-accent btn-lg"><i class="bi bi-send flip-rtl"></i> <span th:text="#{public.submit}"></span></button>
+            </div>
+        </div>
+    </form>
+</section>
+</body>
+</html>

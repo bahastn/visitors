@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{public/layout :: page(~{::title}, ~{::section})}">
+<head><title th:text="#{req.pass}">Pass</title></head>
+<body>
+<section>
+    <div class="panel pass-card text-center">
+        <div class="panel-body p-4">
+            <div class="small-muted ltr" th:text="${r.referenceNumber}"></div>
+            <h1 class="h4 mb-1" th:text="${r.visitor.shortName}"></h1>
+            <div class="mb-3"><span th:replace="~{fragments :: status(${r.status})}"></span></div>
+            <img th:if="${valid}" th:src="${qrImage}" alt="QR" class="mx-auto d-block" style="width:240px;max-width:100%">
+            <div th:unless="${valid}" class="alert alert-danger" th:text="#{public.passInvalid}"></div>
+            <div class="mt-3" th:if="${r.scheduledStart}">
+                <div class="fw-bold fs-3 ltr" th:text="${@dates.time(r.scheduledStart)}"></div>
+                <div th:text="${@dates.full(r.scheduledStart)}"></div>
+            </div>
+            <dl class="kv text-start mt-3">
+                <dt th:text="#{nav.office}"></dt><dd th:text="${r.office.name}"></dd>
+                <dt th:text="#{req.meetingWith}"></dt><dd th:text="${r.meetingWith ?: r.office.hostTitle}"></dd>
+                <th:block th:if="${r.location}"><dt th:text="#{req.location}"></dt><dd th:text="${r.location}"></dd></th:block>
+            </dl>
+            <div class="small-muted mt-3" th:text="#{public.passHint}"></div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

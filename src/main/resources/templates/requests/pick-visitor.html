@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.newRequest}">New request</title></head>
+<body>
+<section>
+    <div class="page-head"><div><h1 th:text="#{nav.newRequest}"></h1><div class="sub" th:text="#{req.pickIntro}"></div></div></div>
+    <div class="row g-3" style="max-width:1100px">
+        <div class="col-lg-7">
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{req.pickExisting}"></h2></div>
+                <div class="panel-body">
+                    <input id="visitorSearch" class="form-control form-control-lg" th:placeholder="#{visitor.searchHint}" autocomplete="off" autofocus th:attr="aria-label=#{common.search}">
+                    <div id="visitorResults" class="list-group mt-2"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="panel h-100">
+                <div class="panel-body d-flex flex-column justify-content-center align-items-start h-100 gap-2">
+                    <h2 class="h6 fw-bold mb-0" style="color:var(--ink)" th:text="#{req.orNewVisitor}"></h2>
+                    <p class="small-muted mb-2" th:text="#{req.newVisitorHint}"></p>
+                    <a th:href="@{/visitors/new(next='request')}" class="btn btn-accent"><i class="bi bi-person-plus"></i> <span th:text="#{visitor.new}"></span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script th:inline="javascript">
+        (function () {
+            const input = document.getElementById('visitorSearch');
+            const out = document.getElementById('visitorResults');
+            const none = /*[[#{common.noResults}]]*/ 'No results';
+            let t;
+            input.addEventListener('input', function () {
+                clearTimeout(t);
+                const q = input.value.trim();
+                if (q.length < 2) { out.innerHTML = ''; return; }
+                t = setTimeout(function () {
+                    fetch('/visitors/lookup?q=' + encodeURIComponent(q)).then(r => r.json()).then(list => {
+                        out.innerHTML = '';
+                        if (!list.length) { const d = document.createElement('div'); d.className = 'list-group-item text-muted'; d.textContent = none; out.appendChild(d); return; }
+                        list.forEach(v => {
+                            const a = document.createElement('a');
+                            a.className = 'list-group-item list-group-item-action';
+                            a.href = '/requests/new?visitorId=' + v.id;
+                            const name = document.createElement('div'); name.className = 'row-title'; name.textContent = v.name;
+                            const meta = document.createElement('div'); meta.className = 'row-sub';
+                            meta.textContent = (v.phone || '') + (v.organization ? ' · ' + v.organization : '');
+                            a.appendChild(name); a.appendChild(meta); out.appendChild(a);
+                        });
+                    });
+                }, 250);
+            });
+        })();
+    </script>
+</section>
+</body>
+</html>

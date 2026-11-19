@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head><title th:text="#{nav.securityDesk}">Security</title></head>
+<body>
+<section data-refresh="60">
+    <div class="page-head">
+        <div><h1 th:text="#{nav.securityDesk}"></h1><div class="sub" th:text="#{sec.sub}"></div></div>
+        <div class="actions"><a th:href="@{/watchlist}" class="btn btn-light"><i class="bi bi-eye"></i> <span th:text="#{nav.watchlist}"></span></a></div>
+    </div>
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="panel" th:if="${!#lists.isEmpty(flagged)}" style="border-color:#e6bcbc">
+                <div class="panel-head"><h2 class="text-danger"><i class="bi bi-shield-exclamation"></i> <span th:text="#{sec.flagged}"></span></h2></div>
+                <ul class="list">
+                    <li th:each="r : ${flagged}"><div class="grow"><a class="row-title" th:href="@{/reception/visit/{id}(id=${r.id})}" th:text="${r.visitor.fullName}"></a>
+                        <div class="row-sub" th:text="${r.office.name}"></div></div><span class="ltr small" th:text="${@dates.dt(r.scheduledStart)}"></span></li>
+                </ul>
+            </div>
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{sec.expected}"></h2></div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead><tr><th th:text="#{req.scheduled}"></th><th th:text="#{req.visitor}"></th><th th:text="#{visitor.idNumber}"></th>
+                            <th th:text="#{req.attendees}"></th><th th:text="#{req.vehiclePlate}"></th><th th:text="#{req.status}"></th></tr></thead>
+                        <tbody>
+                        <tr th:each="r : ${expected}" th:data-href="@{/reception/visit/{id}(id=${r.id})}" th:classappend="${r.watchlistFlag} ? tr-alert">
+                            <td class="small text-nowrap ltr" th:text="${@dates.dt(r.scheduledStart)}"></td>
+                            <td><div class="row-title" th:text="${r.visitor.fullName}"></div><div class="row-sub" th:text="${r.office.name}"></div></td>
+                            <td class="small"><span th:text="${@labels.t(r.visitor.idType)}"></span> <span class="ltr" th:text="${r.visitor.maskedIdNumber}"></span></td>
+                            <td th:text="${r.expectedAttendees}"></td>
+                            <td class="ltr" th:text="${r.vehiclePlate}"></td>
+                            <td><span th:replace="~{fragments :: status(${r.status})}"></span></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${#lists.isEmpty(expected)}" class="panel-empty" th:text="#{rec.noneExpected}"></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="panel">
+                <div class="panel-head"><h2 th:text="#{sec.alerts}"></h2></div>
+                <ul class="list" th:if="${!#lists.isEmpty(alerts)}">
+                    <li th:each="n : ${alerts}" class="align-items-start"><div class="grow"><a class="row-title" th:href="@{/notifications/{id}(id=${n.id})}" th:text="${n.subject}"></a>
+                        <div class="row-sub" th:text="${n.body}"></div><div class="row-sub ltr" th:text="${@dates.dt(n.createdAt)}"></div></div></li>
+                </ul>
+                <div th:if="${#lists.isEmpty(alerts)}" class="panel-empty" th:text="#{sec.noAlerts}"></div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

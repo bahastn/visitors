@@ -1,0 +1,83 @@
+server:
+  port: ${PORT:8080}
+  servlet:
+    session:
+      timeout: 8h
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: visitor-management
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/vms}
+    username: ${DB_USERNAME:vms}
+    password: ${DB_PASSWORD:vms}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: true
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Asia/Baghdad
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+  thymeleaf:
+    cache: ${THYMELEAF_CACHE:true}
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+app:
+  # Public base URL used in SMS / WhatsApp links (QR pass, feedback, tracking)
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  time-zone: Asia/Baghdad
+  # Load sample visitors and visits on first start (set false in production)
+  demo-data: ${APP_DEMO_DATA:true}
+  storage:
+    attachments-dir: ${APP_ATTACHMENTS_DIR:./data/attachments}
+  crypto:
+    # 32-byte key, Base64. CHANGE IN PRODUCTION: openssl rand -base64 32
+    key: ${APP_CRYPTO_KEY:q3J0b0xvY2FsRGV2S2V5Rm9yVk1TLUNoYW5nZU1lISE=}
+  sms:
+    # Generic HTTP SMS gateway (Korek / Asiacell / Zain bulk SMS providers).
+    # Placeholders: {to} {message} {sender} {apiKey}. Leave url empty to only log messages.
+    url: ${SMS_GATEWAY_URL:}
+    method: ${SMS_GATEWAY_METHOD:GET}
+    api-key: ${SMS_GATEWAY_API_KEY:}
+    sender: ${SMS_SENDER:KRD-PARL}
+  whatsapp:
+    # Meta WhatsApp Business Cloud API
+    phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
+    access-token: ${WHATSAPP_ACCESS_TOKEN:}
+    api-version: v21.0
+  mail:
+    from: ${MAIL_FROM:no-reply@parliament.krd}
+  ai:
+    # Optional: Anthropic API key for AI visit summaries. Without a key a built-in summary is generated.
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: ${ANTHROPIC_MODEL:claude-haiku-5-5}
+  backup:
+    enabled: ${APP_BACKUP_ENABLED:true}
+    dir: ${APP_BACKUP_DIR:./data/backups}
+    pg-dump-path: ${PG_DUMP_PATH:pg_dump}
+    keep: ${APP_BACKUP_KEEP:14}
+    cron: "0 0 2 * * *"
+  jobs:
+    morning-summary-cron: "0 30 7 * * *"
+    reminder-cron: "0 */15 * * * *"
+
+logging:
+  level:
+    krd.parliament.vms: INFO
